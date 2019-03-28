@@ -1,0 +1,1 @@
+arm-none-eabi-gdb _build/*.out -ex "target remote localhost:2331"

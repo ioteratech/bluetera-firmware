@@ -1,0 +1,38 @@
+{
+	"files.associations": {
+		"initializer_list": "cpp",
+		"type_traits": "cpp",
+		"xutility": "cpp",
+		"dataconverter.h": "c",
+		"extension_service.h": "c",
+		"message.h": "c",
+		"sdk_config.h": "c",
+		"stdint.h": "c",
+		"string.h": "c",
+		"ble_hci.h": "c",
+		"ble_err.h": "c",
+		"nrf_ble_gatt.h": "c",
+		"fds.h": "c",
+		"ble_dis.h": "c",
+		"ble_advertising.h": "c",
+		"ble_advdata.h": "c",
+		"sdk_common.h": "c",
+		"nrf_dfu_ble_svci_bond_sharing.h": "c",
+		"invexport.h": "c",
+		"hardware_profile.h": "c",
+		"nrf_mtx.h": "c",
+		"ble_bas.h": "c",
+		"nrf_log.h": "c",
+		"nrf_log_ctrl.h": "c",
+		"bltr_invn_wrapper.h": "c"
+	},
+	"files.exclude": {
+		"**/.git": true,
+		"_build": true
+	},
+	"editor.detectIndentation": false,
+	"editor.tabSize": 4,
+	"editor.insertSpaces": false,
+	"nrf.sdk.path": "D:/dev/nordic/sdk/nRF5_SDK_15.2.0_9412b96/",
+	"nrf.sdk.toolpath": "C:/Program Files (x86)/GNU Tools ARM Embedded/7 2018-q2-update/bin/"
+}
