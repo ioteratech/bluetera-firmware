@@ -4,8 +4,8 @@
             "name": "Win32",
             "browse": {
                 "path": [
-					"${workspaceFolder}/src",
-					"${workspaceFolder}/libs",
+					"${workspaceFolder}/application",
+					"${workspaceFolder}/external",
 					"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/components",
 					"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/modules",
 					"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/external",
