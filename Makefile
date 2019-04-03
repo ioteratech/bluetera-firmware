@@ -98,7 +98,7 @@ SRC_FILES += \
   $(APP_DIR)/messages/bluetera_messages.pb.c \
   $(APP_DIR)/messages/bluetera_messages.c \
   $(APP_DIR)/services/bus/ble_bus.c \
-  $(APP_DIR)/modules/imu/icm_driver.c \
+  $(APP_DIR)/modules/imu/imu_manager.c \
   $(APP_DIR)/modules/imu/imu_service.c \
   $(APP_DIR)/main.c \
   $(SRC_INVENSENSE)

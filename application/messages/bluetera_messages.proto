@@ -66,7 +66,8 @@ enum ImuSensorType {
 }
 
 message ImuSetFsrPayload {
-	required uint32 Range = 1;
+	required uint32 acc = 1;
+	required uint32 gyro = 2;
 }
 
 message ImuCommand

@@ -95,6 +95,28 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 	nrfx_gpiote_in_init(ICM_INTERRUPT_PIN, &icm_int1, _on_pin_event_handler);
 }
 
+void bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message)
+{
+	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
+		return;
+
+	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
+	switch(cmd->command)
+	{
+		case BLUETERA_IMU_COMMAND_TYPE_START:
+			// TODO(Tomer): implement correct 
+			break;
+
+		case BLUETERA_IMU_COMMAND_TYPE_STOP:
+			bltr_imu_stop();
+			break;
+
+		case BLUETERA_IMU_COMMAND_TYPE_SET_FSR:
+			bltr_imu_set_fsr(cmd->payload.fsr.acc, cmd->payload.fsr.gyro);
+			break;
+	}
+}
+
 void bltr_imu_start(uint32_t period)
 {
 	bltr_invn_start(period);

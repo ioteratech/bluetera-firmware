@@ -28,8 +28,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "bltr_imu.h"
+#include "bluetera_messages.h"
 
 void bltr_imu_init(const bltr_imu_init_t* init);
+void bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message);
+
 void bltr_imu_start(uint32_t period);
 void bltr_imu_stop();
 void bltr_imu_set_mode(bltr_imu_mode_t mode);
