@@ -56,10 +56,11 @@ message DownlinkMessage
 enum ImuCommandType {
 	START = 0;
     STOP = 1;
-    SET_FSR = 2;
+	SET_FSR = 2;	// TODO: remove SET_FSR
+	CONFIG = 3;
 }
 
-enum ImuSensorType {
+enum ImuDataType {
 	QUATERNION = 1;
 	ACCELEROMETER = 2;
 	RAW = 3;
@@ -70,11 +71,18 @@ message ImuSetFsrPayload {
 	required uint32 gyro = 2;
 }
 
+message ImuConfig {
+	required ImuDataType data_type = 1;
+	required uint32 odr = 2;
+	required uint32 acc_fsr = 3;
+	required uint32 gyro_fsr = 4;	
+}
+
 message ImuCommand
 {
 	required ImuCommandType command = 1;
 	oneof payload {
-		ImuSensorType sensor = 2;
+		ImuDataType sensor = 2;
 		ImuSetFsrPayload fsr = 3;
 	}
 }

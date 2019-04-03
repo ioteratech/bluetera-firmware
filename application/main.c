@@ -689,15 +689,27 @@ void on_sensor_enable(void* p_event_data, uint16_t event_size)
 static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 {
 	NRF_LOG_DEBUG("bluetera_uplink_message_handler(): msg->which_payload = %d", msg->which_payload);
+
+	ret_code_t err;
+	bluetera_bluetera_modules_type_t module;
 	switch(msg->which_payload)
 	{
 		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
 			bltr_msg_send_echo(msg->payload.echo.value);
-		break;
+			break;
+
+		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
+			module = BLUETERA_BLUETERA_MODULES_TYPE_IMU;
+			err = bltr_imu_handle_uplink_message(msg);
+			break;
 
 		default:
+			/* TODO */
 			break;
 	}
+
+	if(err != BLTR_SUCCESS)
+		bltr_msg_send_error(module, (uint32_t)err);
 }
 
 static ret_code_t bluetera_messages_init()

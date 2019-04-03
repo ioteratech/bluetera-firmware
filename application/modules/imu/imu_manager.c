@@ -35,10 +35,12 @@
 
 #include "bluetera_boards.h"
 #include "utils.h"
+#include "bluetera_err.h"
 #include "bltr_invn_wrapper.h"
 
 static nrfx_spim_t _spi = NRFX_SPIM_INSTANCE(ICM_SPI_INSTANCE);
 static bltr_imu_data_handler_t _imu_data_handler;
+static bool _is_running = false;
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
 static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
@@ -95,11 +97,12 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 	nrfx_gpiote_in_init(ICM_INTERRUPT_PIN, &icm_int1, _on_pin_event_handler);
 }
 
-void bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message)
+ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message)
 {
 	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
-		return;
+		return BLTR_SUCCESS;
 
+	ret_code_t err = BLTR_SUCCESS;
 	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
 	switch(cmd->command)
 	{
@@ -111,10 +114,25 @@ void bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message)
 			bltr_imu_stop();
 			break;
 
+		// TODO: deprecate set_fsr, and replace with general config
 		case BLUETERA_IMU_COMMAND_TYPE_SET_FSR:
 			bltr_imu_set_fsr(cmd->payload.fsr.acc, cmd->payload.fsr.gyro);
 			break;
+
+		case BLUETERA_IMU_COMMAND_TYPE_CONFIG:
+			if(_is_running)
+			{
+				NRF_LOG_INFO("bltr_imu_handle_uplink_message() - Invalid state");
+				err = BLTR_IMU_ERROR_INVALID_STATE; 
+			}
+			break;
+
+		default:
+			err = BLTR_IMU_ERROR_INVALID_COMMAND;
+			break;
 	}
+
+	return err;
 }
 
 void bltr_imu_start(uint32_t period)

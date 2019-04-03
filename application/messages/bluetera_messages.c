@@ -104,6 +104,19 @@ ret_code_t bltr_msg_send_echo(const uint8_t data[8])
 	return err;
 }
 
+ret_code_t bltr_msg_send_error(bluetera_bluetera_modules_type_t module, uint32_t code)
+{
+	// build message
+	bluetera_downlink_message_t message;
+	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ERROR_TAG;
+	message.payload.error.module = module;
+	message.payload.error.code = code;
+
+	// try sending message
+	ret_code_t err = _try_send_message(&message);
+	return err;
+}
+
 static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 {	
 	ASSERT(message != NULL);
