@@ -22,7 +22,7 @@
 	SOFTWARE.
 */
 
-#include "icm_driver.h"
+#include "imu_manager.h"
 
 #include <app_timer.h>
 #include <nrfx_spim.h>

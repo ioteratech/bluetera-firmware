@@ -60,7 +60,7 @@
 #include <nrfx_timer.h>
 
 #include "bluetera_boards.h"
-#include "icm_driver.h"
+#include "imu_manager.h"
 #include "imu_service.h"
 #include "bluetera_messages.h"
 #include "utils.h"
