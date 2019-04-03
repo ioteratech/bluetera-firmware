@@ -1,6 +1,7 @@
 PROJECT_NAME     		:= bluetera
 TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
+INVN_LIB_NAME 	:= imu_driver
 
 SDK_ROOT := $(NRF_SDK_ROOTS)/nRF5_SDK_15.2.0_9412b96
 PROJ_DIR := .
@@ -8,6 +9,15 @@ APP_DIR := $(PROJ_DIR)/application
 EXTERNAL_DIR := $(PROJ_DIR)/external
 
 BLUETERA_BOARD := BLUETERA_BOARD_V1
+
+# Invensense ICM20649 library
+SRC_INVENSENSE = $(wildcard $(EXTERNAL_DIR)/invn/*.c) \
+  $(wildcard $(EXTERNAL_DIR)/invn/Devices/*.c) \
+  $(wildcard $(EXTERNAL_DIR)/invn/Devices/Drivers/Icm20649/*.c) \
+  $(wildcard $(EXTERNAL_DIR)/invn/EmbUtils/*.c)
+  
+INC_INVENSENSE = $(EXTERNAL_DIR) \
+  $(APP_DIR)/modules/imu
 
 # print variable
 # $(info $$SRC_INVENSENSE is [${SRC_INVENSENSE}])
@@ -84,7 +94,8 @@ SRC_FILES += \
   $(APP_DIR)/utils.c \
   $(APP_DIR)/modules/imu/icm_driver.c \
   $(APP_DIR)/modules/imu/imu_service.c \
-  $(APP_DIR)/main.c
+  $(APP_DIR)/main.c \
+  $(SRC_INVENSENSE)
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -151,11 +162,12 @@ INC_FOLDERS += \
   $(APP_DIR)/config \
   $(APP_DIR)/modules/boards \
   $(APP_DIR)/modules/imu \
-  $(EXTERNAL_DIR)/invn
+  $(INC_INVENSENSE)
+  #$(EXTERNAL_DIR)/invn
   
 
 # Libraries common to all targets
-LIB_FILES += $(EXTERNAL_DIR)/invn/imu_driver.a \
+#LIB_FILES += $(EXTERNAL_DIR)/invn/$(INVN_LIB_NAME).a \
 
 # Optimization flags
 OPT = -O3 -g3
@@ -259,6 +271,14 @@ flash_softdevice:
 	@echo Flashing: s132_nrf52_6.1.0_softdevice.hex
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_6.1.0_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
+
+INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, $(basename $(notdir $(SRC_INVENSENSE))) ))
+
+build_invn_lib:
+	-$(MK) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
+	$(CC) -c $(SRC_INVENSENSE) -I$(EXTERNAL_DIR) -I$(APP_DIR)/modules/imu $(CFLAGS)
+	move /y *.o "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
+	$(GNU_INSTALL_ROOT)$(GNU_PREFIX)-ar rcs $(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a $(INVN_LIB_OBJ_LOC)
 
 erase:
 	nrfjprog -f nrf52 --eraseall
