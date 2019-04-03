@@ -59,18 +59,36 @@ ret_code_t bltr_msg_init(const bltr_msg_init_t* init)
 	return BLTR_SUCCESS;
 }
 
-ret_code_t bltr_msg_send_acceleration(uint16_t timestamp, const float acc[3])
+ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 {
-	// build message
-	bluetera_downlink_message_t message;	
-	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
-	message.payload.acceleration.timestamp = (uint32_t)timestamp;
-	message.payload.acceleration.x = acc[0];
-	message.payload.acceleration.y = acc[1];
-	message.payload.acceleration.z = acc[2];
+	ret_code_t err = BLTR_MSG_ERROR_IGNORED;
+	bluetera_downlink_message_t message;
 
-	// try sending message
-	ret_code_t err = _try_send_message(&message);
+	switch (data->sensor)
+	{
+		case BLTR_IMU_SENSOR_TYPE_ACCELEROMETER:
+			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
+			message.payload.acceleration.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message.payload.acceleration.x = data->acceleration[0];
+			message.payload.acceleration.y = data->acceleration[1];
+			message.payload.acceleration.z = data->acceleration[2];
+			err = _try_send_message(&message);
+			break;
+	
+		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
+			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_QUATERNION_TAG;
+			message.payload.quaternion.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message.payload.quaternion.w = data->acceleration[0];
+			message.payload.quaternion.x = data->acceleration[1];
+			message.payload.quaternion.y = data->acceleration[2];
+			message.payload.quaternion.z = data->acceleration[3];
+			err = _try_send_message(&message);
+			break;
+
+		default:
+			break;
+	}
+
 	return err;
 }
 
@@ -94,7 +112,7 @@ static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 
 	// make sure we can send the message
 	if(!_can_send_message)
-		return BLTR_MSG_NO_TRANSPORT;
+		return BLTR_MSG_ERROR_NO_TRANSPORT;
 		
 	// encode message
 	pb_ostream_t ostream = pb_ostream_from_buffer(_obuffer, sizeof(_obuffer));	

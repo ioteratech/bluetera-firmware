@@ -633,39 +633,8 @@ static void advertising_init()
 // synced with main thread
 static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 {
-	if (_conn_handle == BLE_CONN_HANDLE_INVALID)
-		return;
-
-	uint32_t timestamp = (uint32_t)(data->timestamp / 1000.0f);
-	switch (data->sensor)
-	{
-		case BLTR_IMU_SENSOR_TYPE_ACCELEROMETER:
-		{
-			// characteristic format:
-			// [4 bytes]:   timestamp (milliseconds)
-			// [12 bytes]:	accelerometer data [x, y, z]
-			uint8_t _acc_data[CHAR_ACC_LENGTH] = { 0 };			
-			memcpy(_acc_data, &timestamp, 4);
-			memcpy(_acc_data + 4, data->acceleration, 12);			
-			bltr_imu_service_update_acc(&_imu_service, _acc_data);
-		}
-			break;
-	
-		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
-		{
-			// characteristic format:
-			// [4 bytes]:   timestamp (milliseconds)
-			// [16 bytes]:  quaternion data [w, x, y, z]
-			uint8_t _quat_data[CHAR_QUAT_LENGTH] = { 0 };
-			memcpy(_quat_data, &timestamp, 4);
-			memcpy(_quat_data + 4, data->quaternion, 16);
-			bltr_imu_service_update_quat(&_imu_service, _quat_data);
-		}
-			break;
-
-		default:
-			break;
-	}
+	if (_conn_handle != BLE_CONN_HANDLE_INVALID)
+		bltr_msg_send_sensor_data(data);
 }
 
 // synced with scheduler

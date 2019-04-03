@@ -11,6 +11,7 @@
 #include "bluetera_messages.pb.h"
 #include "bluetera_err.h"
 #include "pb.h"
+#include "bltr_imu.h"
 
 #define BLTR_MAX_MESSAGE_LENGTH_VARINT_BYTES			4
 #define BLTR_MAX_DOWNLINK_MESSAGE_SIZE					(BLUETERA_DOWNLINK_MESSAGE_SIZE + BLTR_MAX_MESSAGE_LENGTH_VARINT_BYTES)
@@ -34,9 +35,7 @@ typedef struct
 
 
 ret_code_t bltr_msg_init(const bltr_msg_init_t* init);
-ret_code_t bltr_msg_send_acceleration(uint16_t timestamp, const float acc[3]);
-
-// TODO(tomer): make sure it is OK to call with fixed array size
+ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data);
 ret_code_t bltr_msg_send_echo(const uint8_t data[8]);
 
 
