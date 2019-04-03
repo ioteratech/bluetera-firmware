@@ -17,8 +17,8 @@ SRC_INVENSENSE = $(wildcard $(EXTERNAL_DIR)/invn/*.c) \
   $(wildcard $(EXTERNAL_DIR)/invn/EmbUtils/*.c)
   
 INC_INVENSENSE = $(EXTERNAL_DIR) \
-  $(APP_DIR)/modules/imu
-
+  $(EXTERNAL_DIR)/invn 
+  
 # print variable
 # $(info $$SRC_INVENSENSE is [${SRC_INVENSENSE}])
 
