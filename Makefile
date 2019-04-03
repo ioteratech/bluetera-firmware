@@ -91,7 +91,13 @@ SRC_FILES += \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
-  $(APP_DIR)/utils.c \
+  $(SDK_ROOT)/external/nano-pb/pb_common.c \
+  $(SDK_ROOT)/external/nano-pb/pb_decode.c \
+  $(SDK_ROOT)/external/nano-pb/pb_encode.c \
+  $(APP_DIR)/utilities/utils.c \
+  $(APP_DIR)/messages/bluetera_messages.pb.c \
+  $(APP_DIR)/messages/bluetera_messages.c \
+  $(APP_DIR)/services/bus/ble_bus.c \
   $(APP_DIR)/modules/imu/icm_driver.c \
   $(APP_DIR)/modules/imu/imu_service.c \
   $(APP_DIR)/main.c \
@@ -158,8 +164,12 @@ INC_FOLDERS += \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/external/fprintf \
   $(SDK_ROOT)/external/segger_rtt \
+  $(SDK_ROOT)/external/nano-pb \
   $(APP_DIR) \
   $(APP_DIR)/config \
+  $(APP_DIR)/utilities \
+  $(APP_DIR)/services/bus \
+  $(APP_DIR)/messages \
   $(APP_DIR)/modules/boards \
   $(APP_DIR)/modules/imu \
   $(INC_INVENSENSE)

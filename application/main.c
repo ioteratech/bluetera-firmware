@@ -63,7 +63,7 @@
 #include "icm_driver.h"
 #include "imu_service.h"
 #include "utils.h"
-#include "application_constants.h"
+#include "bluetera_constants.h"
 
 // The advertising interval (in units of 0.625 ms)
 #define	APP_ADV_INTERVAL 					300

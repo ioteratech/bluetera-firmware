@@ -1,0 +1,43 @@
+syntax = "proto2";
+
+package bluetera;
+
+// Version 0.0
+
+// Data messasges - from Bluetera to host
+message ImuAccelerationPayload
+{
+	required float x = 1;
+	required float y = 2;
+	required float z = 3;
+}
+
+message ImuQuaternionPayload
+{
+	required float w = 1;
+	required float x = 2;
+	required float y = 3;
+	required float z = 4;
+}
+
+message BlueteraDownlinkMessage
+{
+    required uint32 timestamp = 1;
+    oneof payload {
+        ImuAccelerationPayload acceleration = 2;
+        ImuQuaternionPayload quaternion = 3;
+    }
+}
+
+// Control messsages - from host to Bluetera
+message EchoPayload
+{
+	required string value = 1;
+}
+
+message BlueteraUplinkMessage
+{
+	oneof payload {
+		EchoPayload echo = 1;
+	}
+}
