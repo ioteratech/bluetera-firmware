@@ -62,6 +62,7 @@
 #include "bluetera_boards.h"
 #include "icm_driver.h"
 #include "imu_service.h"
+#include "bluetera_messages.h"
 #include "utils.h"
 #include "bluetera_constants.h"
 
@@ -161,13 +162,14 @@ static void services_init();
 static void advertising_init();
 static void conn_params_init();
 static void peer_manager_init();
-// static void sensor_event_callback(const inv_sensor_event_t* event, void* arg);
-// static void sensor_raw_data_no_dmp_callback(void* data, uint16_t event_size);
+static ret_code_t bluetera_messages_init();
+
 static void imu_data_handler(const bltr_imu_sensor_data_t* data);
 static void advertising_start(bool erase_bonds);
 static void on_sensor_enable(void* p_event_data, uint16_t event_size);
 static void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const * p_evt);
 static void on_ble_disconnected(void*, uint16_t);
+static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg);
 
 int main()
 {
@@ -190,6 +192,7 @@ int main()
 	err_code = nrf_ble_gatt_init(&_gatt, gatt_evt_handler);
 	APP_ERROR_CHECK(err_code);
 	services_init();
+	bluetera_messages_init();
 	advertising_init();
 	conn_params_init();
 	peer_manager_init();	
@@ -665,54 +668,6 @@ static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 	}
 }
 
-/*
-static void sensor_event_callback(const inv_sensor_event_t* event, void* arg)
-{
-	if (_conn_handle == BLE_CONN_HANDLE_INVALID)
-		return;
-
-	if (event->status == INV_SENSOR_STATUS_DATA_UPDATED)
-	{
-		switch (INV_SENSOR_ID_TO_TYPE(event->sensor))
-		{
-			case INV_SENSOR_TYPE_RAW_ACCELEROMETER:
-			case INV_SENSOR_TYPE_RAW_GYROSCOPE:
-				break;
-			case INV_SENSOR_TYPE_ACCELEROMETER:
-				{
-					// format
-					// [4 bytes]:   timestamp (milliseconds)
-					// [12 bytes]:	accelerometer data [x, y, z]
-					uint8_t _acc_data[CHAR_ACC_LENGTH] = { 0 };
-
-					uint32_t timestamp = (uint32_t)((float)event->timestamp / 1000.0f);
-					memcpy(_acc_data, &timestamp, 4);
-					memcpy(_acc_data + 4, event->data.acc.vect, 12);
-					
-					bltr_imu_service_update_acc(&_imu_service, _acc_data);
-				}
-				break;
-			case INV_SENSOR_TYPE_GAME_ROTATION_VECTOR:
-			case INV_SENSOR_TYPE_ROTATION_VECTOR:
-				{
-					// format
-					// [4 bytes]:   timestamp (milliseconds)
-					// [16 bytes]:  quaternion data [w, x, y, z]
-					uint8_t _quat_data[CHAR_QUAT_LENGTH] = { 0 };
-
-					uint32_t timestamp = (uint32_t)((float)event->timestamp / 1000.0f);
-					memcpy(_quat_data, &timestamp, 4);
-					memcpy(_quat_data + 4, event->data.quaternion.quat, 16);
-					bltr_imu_service_update_quat(&_imu_service, _quat_data);
-				}
-				break;
-			default:
-				break;
-		}
-	}
-}
-*/
-
 // synced with scheduler
 static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 {
@@ -720,42 +675,6 @@ static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 
 	bltr_imu_stop();
 }
-
-// synced with scheduler
-/*
-static void sensor_raw_data_no_dmp_callback(void* data, uint16_t event_size)
-{
-	// TODO find a way to avoid so much copying
-	
-	uint8_t* rd = (uint8_t*)data;
-
-	int16_t acc[3] = { 0 }; // [x, y, z]
-	acc[0] = (rd[0] << 8) | rd[1];
-	acc[1] = (rd[2] << 8) | rd[3];
-	acc[2] = (rd[4] << 8) | rd[5];
-
-	int16_t gyro[3] = { 0 }; // [x, y, z]
-	gyro[0] = (rd[6] << 8) | rd[7];
-	gyro[1] = (rd[8] << 8) | rd[9];
-	gyro[2] = (rd[10] << 8) | rd[11];
-
-	if (_conn_handle != BLE_CONN_HANDLE_INVALID)
-	{
-		// format
-		// [4 bytes]: timestamp (milliseconds)
-		// [6 bytes]: accelerometer data [x, y, z]
-		// [6 bytes]: gyroscope  data [x, y, z]
-
-		uint8_t raw_data[CHAR_RAW_ACC_GYRO_LENGTH] = { 0 };
-		uint32_t timestamp = (uint32_t)((float)*((uint64_t*)(data + 12)) / 1000.0f);
-
-		memcpy(raw_data, &timestamp, 4);
-		memcpy(raw_data + 4, acc, 6);
-		memcpy(raw_data + 10, gyro, 6);
-		bltr_imu_service_update_raw(&_imu_service, raw_data);
-	}
-}
-*/
 
 // called from scheduler
 void on_sensor_enable(void* p_event_data, uint16_t event_size)
@@ -795,4 +714,29 @@ void on_sensor_enable(void* p_event_data, uint16_t event_size)
 			}
 			break;
 	}
+}
+
+// Bluetera uplink message handler
+static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
+{
+	NRF_LOG_DEBUG("bluetera_uplink_message_handler(): msg->which_payload = %d", msg->which_payload);
+	switch(msg->which_payload)
+	{
+		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
+			bltr_msg_send_echo(msg->payload.echo.value);
+		break;
+
+		default:
+			break;
+	}
+}
+
+static ret_code_t bluetera_messages_init()
+{
+	bltr_msg_init_t context = 
+	{
+		.message_handler = bluetera_uplink_message_handler
+	};
+
+	return bltr_msg_init(&context); 
 }
