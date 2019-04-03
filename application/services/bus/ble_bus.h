@@ -70,6 +70,7 @@
 #include "ble_srv_common.h"
 #include "nrf_sdh_ble.h"
 #include "ble_link_ctx_manager.h"
+#include "nrf_atomic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -177,7 +178,7 @@ struct ble_bus_s
     ble_bus_data_handler_t          data_handler;       /**< Event handler to be called for handling received data. */
 	uint16_t                      	conn_handle;
 	bool 					   		is_notification_enabled;
-	uint8_t 						free_buffers;
+	nrf_atomic_u32_t 				free_buffers;		//**< Counts number of free TX buffers
 };
 
 
@@ -220,25 +221,6 @@ void ble_bus_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
  * @retval NRF_SUCCESS If the string was sent successfully. Otherwise, an error code is returned.
  */
 uint32_t ble_bus_data_send(ble_bus_t * p_bus, uint8_t   * p_data, uint16_t  * p_length);
-
-/**@brief   Get the size of a TX buffer.
- *
- * @param[in]     p_bus       Pointer to the Bluetera UART Service structure.
- *
- * @retval Number of available buffers
- */
-uint32_t ble_bus_get_tx_buffer_size(ble_bus_t * p_bus);
-
-/**@brief   Get the number of available TX buffers.
- *
- * @details Returns the number of internal available TX buffers.
- *          Use this function instead of accessing ble_bus_s.free_buffers for thread-safety
- *
- * @param[in]     p_bus       Pointer to the Bluetera UART Service structure.
- *
- * @retval Number of available buffers
- */
-uint8_t ble_bus_get_num_free_tx_buffers(ble_bus_t * p_bus);
 
 /**@brief   Get the number of available TX bytes.
  *

@@ -13,8 +13,11 @@ extern "C" {
 #define BLTR_IMU_ERR_BASE			(BLTR_ERROR_BASE_NUM + 0x200)
 
 #define BLTR_SUCCESS				(NRF_SUCCESS)
+
+// message module
 #define BLTR_MSG_ERROR_OP_FAILED	(BLTR_MSG_ERR_BASE+0)
 #define BLTR_MSG_ERROR_RESOURCES	(BLTR_MSG_ERR_BASE+1)
+#define BLTR_MSG_NO_TRANSPORT		(BLTR_MSG_ERR_BASE+2)
 
 #ifdef __cplusplus
 }

@@ -80,7 +80,7 @@ static void on_connect(ble_bus_t * p_bus, ble_evt_t const * p_ble_evt)
 
 	p_bus->conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 	p_bus->is_notification_enabled = false;
-	p_bus->free_buffers = HVN_TX_QUEUE_SIZE;
+	nrf_atomic_u32_store(&p_bus->free_buffers, HVN_TX_QUEUE_SIZE);
 
     /* Check the hosts CCCD value to inform of readiness to send data using the RX characteristic */
     memset(&gatts_val, 0, sizeof(ble_gatts_value_t));
@@ -169,8 +169,7 @@ static void on_hvx_tx_complete(ble_bus_t * p_bus, ble_evt_t const * p_ble_evt)
     ret_code_t                 err_code;
     ble_bus_evt_t              evt;
 
-	p_bus->free_buffers += p_ble_evt->evt.gatts_evt.params.hvn_tx_complete.count;
-
+	nrf_atomic_u32_add(&p_bus->free_buffers, p_ble_evt->evt.gatts_evt.params.hvn_tx_complete.count);
     if (p_bus->is_notification_enabled)
     {
         memset(&evt, 0, sizeof(ble_bus_evt_t));
@@ -296,40 +295,44 @@ uint32_t ble_bus_data_send(ble_bus_t* p_bus, uint8_t* p_data, uint16_t* p_length
     {
         return NRF_ERROR_INVALID_STATE;
     }
+	
+	if(*p_length > ble_bus_get_num_free_tx_bytes(p_bus))
+	{		
+		return NRF_ERROR_BUSY;
+	}
 
-    if (*p_length > BLE_BUS_MAX_DATA_LEN)
-    {
-        return NRF_ERROR_INVALID_PARAM;
-    }
+	uint16_t packet_length;
+	uint16_t remaining_bytes = *p_length;	
+	uint32_t used_buffers = 0;
 
     memset(&hvx_params, 0, sizeof(hvx_params));
-
     hvx_params.handle = p_bus->tx_handles.value_handle;
-    hvx_params.p_data = p_data;
-    hvx_params.p_len  = p_length;
     hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+	hvx_params.p_len  = &packet_length;
 
-	err_code = sd_ble_gatts_hvx(p_bus->conn_handle, &hvx_params);
+	while(remaining_bytes > 0)
+	{
+		packet_length = MIN(remaining_bytes, BLE_BUS_MAX_TX_CHAR_LEN);
+		hvx_params.p_data = (const uint8_t*)p_data;		
+		err_code = sd_ble_gatts_hvx(p_bus->conn_handle, &hvx_params);
 
-	if(err_code == NRF_SUCCESS)
-		p_bus->free_buffers -= 1;
+		if(err_code == NRF_SUCCESS)
+		{
+			used_buffers++;			
+			p_data += packet_length;
+			remaining_bytes -= packet_length;
+		}
+		else
+		{
+			break;
+		}
+	}
 
+	nrf_atomic_u32_sub(&p_bus->free_buffers, used_buffers);
     return err_code;
-}
-
-uint32_t ble_bus_get_tx_buffer_size(ble_bus_t * p_bus)
-{
-	return BLE_BUS_MAX_TX_CHAR_LEN;
-}
-
-uint8_t ble_bus_get_num_free_tx_buffers(ble_bus_t * p_bus)
-{
-	// TODO: with current event priority, no lock is required. Future versions might need it though
-	return p_bus->free_buffers;
 }
 
 uint32_t ble_bus_get_num_free_tx_bytes(ble_bus_t * p_bus)
 {
-	uint8_t free_buffers = ble_bus_get_num_free_tx_buffers(p_bus);
-	return (free_buffers * BLE_BUS_MAX_TX_CHAR_LEN);
+	return (BLE_BUS_MAX_TX_CHAR_LEN * p_bus->free_buffers);
 }

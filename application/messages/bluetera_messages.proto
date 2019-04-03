@@ -3,41 +3,85 @@ syntax = "proto2";
 package bluetera;
 
 // Version 0.0
+// TODO: implement other sensors/sub modules (e.g. sd-card)
+// TODO: add all relevant enums/types 
 
-// Data messasges - from Bluetera to host
-message ImuAccelerationPayload
+// Generic payloads / enums
+enum BlueteraModulesType
 {
-	required float x = 1;
-	required float y = 2;
-	required float z = 3;
+	IMU = 1;
+	SDCARD = 2;
 }
 
-message ImuQuaternionPayload
-{
-	required float w = 1;
-	required float x = 2;
-	required float y = 3;
-	required float z = 4;
-}
-
-message BlueteraDownlinkMessage
-{
-    required uint32 timestamp = 1;
-    oneof payload {
-        ImuAccelerationPayload acceleration = 2;
-        ImuQuaternionPayload quaternion = 3;
-    }
-}
-
-// Control messsages - from host to Bluetera
 message EchoPayload
 {
 	required string value = 1;
 }
 
-message BlueteraUplinkMessage
+message Error
+{
+	required BlueteraModulesType module = 1;
+	required uint32 code = 2;
+}
+
+// Data messasges - from Bluetera to host
+message ImuAccelerationPayload
+{
+	required uint32 timestamp = 1;
+	required float x = 2;
+	required float y = 3;
+	required float z = 4;
+}
+
+message ImuQuaternionPayload
+{
+	required uint32 timestamp = 1;
+	required float w = 2;
+	required float x = 3;
+	required float y = 4;
+	required float z = 5;
+}
+
+message DownlinkMessage
+{    
+    oneof payload {
+        ImuAccelerationPayload acceleration = 1;
+		ImuQuaternionPayload quaternion = 2;
+		Error error = 14;
+		EchoPayload echo = 15;
+    }
+}
+
+// Control messsages - from host to Bluetera
+enum ImuCommandType {
+	START = 0;
+    STOP = 1;
+    SET_FSR = 2;
+}
+
+enum ImuSensorType {
+	QUATERNION = 1;
+	ACCELEROMETER = 2;
+	RAW = 3;
+}
+
+message ImuSetFsrPayload {
+	required uint32 Range = 1;
+}
+
+message ImuCommand
+{
+	required ImuCommandType command = 1;
+	oneof payload {
+		ImuSensorType sensor = 2;
+		ImuSetFsrPayload fsr = 3;
+	}
+}
+
+message UplinkMessage
 {
 	oneof payload {
-		EchoPayload echo = 1;
+		ImuCommand imu = 1;
+		EchoPayload echo = 15;
 	}
 }

@@ -3,129 +3,179 @@
 #include <nordic_common.h>
 #include <nrf_queue.h>
 #include <app_scheduler.h>
-#include <nrf_log.h>
+#include <ble.h>
+#include <ble_srv_common.h>
 
 #include "bluetera_messages.h"
 #include "ble_bus.h"
 
-static bltr_init_t _init_context;
+// Configure logging
+#define NRF_LOG_MODULE_NAME bltr_msg
+#if BLTR_MSG_CONFIG_LOG_ENABLED
+    #define NRF_LOG_LEVEL       BLTR_MSG_CONFIG_LOG_LEVEL
+	#define NRF_LOG_INFO_COLOR  BLTR_MSG_CONFIG_INFO_COLOR
+	#define NRF_LOG_DEBUG_COLOR BLTR_MSG_CONFIG_DEBUG_COLOR
+#else
+    #define NRF_LOG_LEVEL       0
+#endif // BLTR_MSG_LOG_ENABLED
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+NRF_LOG_MODULE_REGISTER();
+#include "nrf_strerror.h"
 
-typedef struct
-{	
-	uint8_t obuffer[BLTR_MAX_DOWNLINK_MESSAGE_SIZE];
-	uint8_t ibuffer[BLTR_MAX_UPLINK_MESSAGE_SIZE];
-	pb_ostream_t ostream;
-	pb_istream_t istream;
-} bltr_msg_context_t;
-
+// static fields
+static bltr_uplink_message_handler_t _message_handler = NULL;
+static uint8_t _ibuffer[BLTR_MAX_UPLINK_MESSAGE_SIZE];
+static uint8_t _obuffer[BLTR_MAX_DOWNLINK_MESSAGE_SIZE];
 BLE_BUS_DEF(_bus);
+static volatile bool _can_send_message = false;
 
-static bltr_msg_context_t _context;
-static ret_code_t _try_send_message(const uint8_t* buffer, uint32_t length);
+// static methods
+static ret_code_t _try_send_message(const bluetera_downlink_message_t* message);
+static void _bus_data_handler(ble_bus_evt_t * p_evt);
+static void _on_ble_event(ble_evt_t const * p_ble_evt, void* p_context);
 
-static void nrf_qwr_error_handler(uint32_t nrf_error);
-static void bus_data_handler(ble_bus_evt_t * p_evt);
+// register BLE events handler
+NRF_SDH_BLE_OBSERVER(bltr_msg_observer, BLTR_MSG_BLE_OBSERVER_PRIO, _on_ble_event, NULL);
 
-ret_code_t bltr_msg_init(const bltr_init_t* context)
+// implementation
+ret_code_t bltr_msg_init(const bltr_msg_init_t* init)
 {
+	ASSERT(init != NULL);
+	
 	ret_code_t err_code;	
 
-	// Init message handlers
-	_init_context = *context;
+	// Init locals
+	_message_handler = init->message_handler;
+	memset(_obuffer, 0, sizeof(_obuffer));
+	memset(_ibuffer, 0, sizeof(_ibuffer));
 
 	// Init BUS service	
 	ble_bus_init_t bus_init = { 0 };
-    bus_init.data_handler = bus_data_handler;
+    bus_init.data_handler = _bus_data_handler;
     err_code = ble_bus_init(&_bus, &bus_init);
     APP_ERROR_CHECK(err_code);
-
-	// Init protobuf
-	_context.ostream = pb_ostream_from_buffer(_context.obuffer, sizeof(_context.obuffer));
-	_context.istream = pb_istream_from_buffer(_context.ibuffer, sizeof(_context.ibuffer));
 
 	return BLTR_SUCCESS;
 }
 
-ret_code_t bltr_msg_send_acceleration(uint16_t timestamp, float acc[3])
+ret_code_t bltr_msg_send_acceleration(uint16_t timestamp, const float acc[3])
 {
 	// build message
-	bluetera_bluetera_downlink_message_t message;
-	message.timestamp = (uint32_t)timestamp;
-	message.which_payload = BLUETERA_BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
+	bluetera_downlink_message_t message;	
+	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
+	message.payload.acceleration.timestamp = (uint32_t)timestamp;
 	message.payload.acceleration.x = acc[0];
 	message.payload.acceleration.y = acc[1];
 	message.payload.acceleration.z = acc[2];
 
-	// encode
-	if(!pb_encode_delimited(&_context.ostream, bluetera_bluetera_downlink_message_fields, &message) || (_context.ostream.bytes_written == 0))
-		return BLTR_MSG_ERROR_OP_FAILED;
-
-	// try sending
-	ret_code_t err = _try_send_message(_context.obuffer, _context.ostream.bytes_written);
-
-	return BLTR_SUCCESS;
+	// try sending message
+	ret_code_t err = _try_send_message(&message);
+	return err;
 }
 
-static ret_code_t _try_send_message(const uint8_t* buffer, uint32_t length)
+ret_code_t bltr_msg_send_echo(const uint8_t data[8])
+{
+	// build message
+	bluetera_downlink_message_t message;
+	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ECHO_TAG;
+	memcpy(message.payload.echo.value, data, sizeof(message.payload.echo.value));
+
+	// try sending message
+	ret_code_t err = _try_send_message(&message);
+	return err;
+}
+
+static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 {	
-	// make sure there is enough space	
-	if(ble_bus_get_num_free_tx_bytes(&_bus) < length)
-		return BLTR_MSG_ERROR_RESOURCES;
+	ASSERT(message != NULL);
 
-	// send using 'tx_buffer_size' chuncks
-	uint32_t tx_buffer_size = ble_bus_get_tx_buffer_size(&_bus);
-	while(length > 0)
+	ret_code_t err_code;
+
+	// make sure we can send the message
+	if(!_can_send_message)
+		return BLTR_MSG_NO_TRANSPORT;
+		
+	// encode message
+	pb_ostream_t ostream = pb_ostream_from_buffer(_obuffer, sizeof(_obuffer));	
+	if(!pb_encode_delimited(&ostream, bluetera_downlink_message_fields, message) || (ostream.bytes_written == 0))
 	{
-		uint16_t packet_len = MIN(length, tx_buffer_size);
-		if(ble_bus_data_send(&_bus, (uint8_t*)buffer, &packet_len) != NRF_SUCCESS)
-			return BLTR_MSG_ERROR_OP_FAILED;
-
-		buffer += packet_len;
-		length -= packet_len;		
+		NRF_LOG_ERROR("_try_send_message() - pb_encode_delimited() failed with error: %s", PB_GET_ERROR(ostream));
+		return BLTR_MSG_ERROR_OP_FAILED;
 	}
 
-	return BLTR_SUCCESS;
-}
+	// send message (will fail if not enough space)
+	uint16_t data_length = ostream.bytes_written;
+	err_code = ble_bus_data_send(&_bus, _obuffer, &data_length);
 
+	return err_code;
+}
 
 // try to parse RX queue data - must run in application context
 static void _try_parse_rx_data(void * p_event_data, uint16_t event_size)
 {
+	NRF_LOG_DEBUG("_try_parse_rx_data() - event_size = %d", event_size);
+
 	// verify
 	if(p_event_data == NULL)
 		return;
 
-	// copy
+	// copy buffer
 	bltr_app_scheduler_message_t* app_message = (bltr_app_scheduler_message_t*)p_event_data;
-	memcpy(_context.ibuffer, app_message->data, app_message->length);
+	memcpy(_ibuffer, app_message->data, app_message->length);
 
 	// try parsing
-	bluetera_bluetera_uplink_message_t message;
-	if(pb_decode_delimited(&_context.istream, bluetera_bluetera_uplink_message_fields, &message))
-	{
-		if(_init_context.message_handler != NULL)
-			_init_context.message_handler(&message);
+	bluetera_uplink_message_t message;
+	pb_istream_t istream = pb_istream_from_buffer(_ibuffer, sizeof(_ibuffer));
+	if(pb_decode_delimited(&istream, bluetera_uplink_message_fields, &message))
+	{		
+		if(_message_handler != NULL)
+			_message_handler(&message);
 	}
+	else
+	{
+		NRF_LOG_WARNING("_try_parse_rx_data() - pb_decode_delimited() failed with error: %s", PB_GET_ERROR(ostream));
+	}	
 }
 
 // Transport handlers
+// Carful! This method is called from an IRQ
 // TODO: expand to include other transport like USB, UART, RTT etc
-static void bus_data_handler(ble_bus_evt_t * p_evt)
-{
+static void _bus_data_handler(ble_bus_evt_t * p_evt)
+{	
 	bltr_app_scheduler_message_t app_message;	
     switch(p_evt->type)
     {
 		case BLE_BUS_EVT_RX_DATA:
-			NRF_LOG_INFO("BLE_BUS_EVT_RX_DATA");
-
+			NRF_LOG_DEBUG("_bus_data_handler() - RX data");
+			NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);			
 			app_message.length = MIN(p_evt->params.rx_data.length, sizeof(app_message.data));
 			memcpy(app_message.data, p_evt->params.rx_data.p_data, app_message.length);
 			app_sched_event_put(&app_message, sizeof(app_message), _try_parse_rx_data);
 			break;
 
-		case BLE_BUS_EVT_TX_RDY:
 		case BLE_BUS_EVT_COMM_STARTED:
-    	case BLE_BUS_EVT_COMM_STOPPED:
+			NRF_LOG_INFO("_bus_data_handler() - Notifications enabled");
+			_can_send_message = true;
+			break;
+
+		case BLE_BUS_EVT_COMM_STOPPED:
+			NRF_LOG_INFO("_bus_data_handler() - Notifications disabled");
+			_can_send_message = false;
+			break;
+
+		case BLE_BUS_EVT_TX_RDY:    	
+		default:
+			/* do nothing */
 			break;
     }
+}
+
+static void _on_ble_event(ble_evt_t const * p_ble_evt, void* p_context)
+{
+	if (p_ble_evt->header.evt_id == BLE_GAP_EVT_DISCONNECTED)
+	{
+		NRF_LOG_INFO("_on_ble_event() - disconnected");
+		_can_send_message = false;
+	}
 }
