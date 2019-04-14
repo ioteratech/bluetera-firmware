@@ -38,7 +38,7 @@ void bltr_imu_config(const bltr_imu_config_t* config);
 void bltr_imu_start(uint32_t period);					// TODO(Tomer): remove argument from footprint
 void bltr_imu_stop();
 void bltr_imu_set_mode(bltr_imu_mode_t mode);			// TODO(Tomer): deprecate
-void bltr_imu_update();
+void bltr_imu_poll();
 void bltr_imu_set_freq_divider(uint8_t div);			// TODO(Tomer): deprecate
 void bltr_imu_set_fsr(uint16_t acc, uint16_t gyro);		// TODO(Tomer): deprecate
 void bltr_imu_get_fsr(uint16_t* acc, uint16_t* gyro);	// TODO(Tomer): deprecate

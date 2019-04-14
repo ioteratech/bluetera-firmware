@@ -171,9 +171,9 @@ void bltr_imu_set_freq_divider(uint8_t div)
 	bltr_invn_set_freq_divider(div);
 }
 
-void bltr_imu_update()
+void bltr_imu_poll()
 {
-	bltr_invn_update();
+	bltr_invn_poll();
 }
 
 void bltr_imu_set_fsr(uint16_t acc, uint16_t gyro)

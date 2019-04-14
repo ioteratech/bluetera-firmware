@@ -232,7 +232,7 @@ int main()
 
 	while(true)
 	{
-		bltr_imu_update();		
+		bltr_imu_poll();		
 		app_sched_execute();
 
 		// if there are no pending log operations, then sleep until next the next event occurs

@@ -23,7 +23,7 @@ void bltr_invn_start(uint32_t period);					// TODO(Tomer): remove argument from 
 void bltr_invn_stop();
 
 void bltr_invn_set_mode(bltr_imu_mode_t mode);			// TODO(Tomer): deprecate
-void bltr_invn_update();
+void bltr_invn_poll();
 void bltr_invn_set_freq_divider(uint8_t div);			// TODO(Tomer): deprecate
 void bltr_invn_set_fsr(uint16_t acc, uint16_t gyro);	// TODO(Tomer): deprecate
 void bltr_invn_get_fsr(uint16_t* acc, uint16_t* gyro);	// TODO(Tomer): deprecate

@@ -169,7 +169,7 @@ void bltr_invn_set_mode(bltr_imu_mode_t mode)
 	}	
 }
 
-void bltr_invn_update()
+void bltr_invn_poll()
 {
 	if (_device_mode == BLTR_IMU_MODE_DMP && _irq_from_device)
 	{
