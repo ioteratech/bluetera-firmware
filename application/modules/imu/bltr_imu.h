@@ -61,6 +61,12 @@ typedef enum
 	BLTR_IMU_MODE_DIRECT
 } bltr_imu_mode_t;
 
+typedef struct {
+	bltr_imu_mode_t mode;
+	int odr;
+	int acc_fsr;
+	int gyro_fsr;
+} bltr_imu_config_t;
 
 typedef void(*bltr_imu_data_handler_t)(const bltr_imu_sensor_data_t* data);
 

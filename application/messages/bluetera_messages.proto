@@ -21,7 +21,8 @@ message EchoPayload
 message Error
 {
 	required BlueteraModulesType module = 1;
-	required uint32 code = 2;
+	required int32 code = 2;
+	optional int32 inner_code = 3; 
 }
 
 // Data messasges - from Bluetera to host
@@ -35,6 +36,7 @@ message ImuAccelerationPayload
 
 message ImuQuaternionPayload
 {
+	// TODO: consider sending only (x,y,z), and inferring w from it (the norm of the quaternion should equal 1.0)
 	required uint32 timestamp = 1;
 	required float w = 2;
 	required float x = 3;
@@ -53,22 +55,10 @@ message DownlinkMessage
 }
 
 // Control messsages - from host to Bluetera
-enum ImuCommandType {
-	START = 0;
-    STOP = 1;
-	SET_FSR = 2;	// TODO: remove SET_FSR
-	CONFIG = 3;
-}
-
 enum ImuDataType {
 	QUATERNION = 1;
 	ACCELEROMETER = 2;
 	RAW = 3;
-}
-
-message ImuSetFsrPayload {
-	required uint32 acc = 1;
-	required uint32 gyro = 2;
 }
 
 message ImuConfig {
@@ -79,11 +69,11 @@ message ImuConfig {
 }
 
 message ImuCommand
-{
-	required ImuCommandType command = 1;
+{	
 	oneof payload {
-		ImuDataType sensor = 2;
-		ImuSetFsrPayload fsr = 3;
+		ImuConfig config = 1;
+		bool start = 2;
+		bool stop = 3;
 	}
 }
 

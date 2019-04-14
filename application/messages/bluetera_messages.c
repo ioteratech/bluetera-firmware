@@ -78,7 +78,6 @@ ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
 			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_QUATERNION_TAG;
 			message.payload.quaternion.timestamp = (uint32_t)(data->timestamp / 1000.0f);
-			message.payload.quaternion.w = data->acceleration[0];
 			message.payload.quaternion.x = data->acceleration[1];
 			message.payload.quaternion.y = data->acceleration[2];
 			message.payload.quaternion.z = data->acceleration[3];

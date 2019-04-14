@@ -110,6 +110,11 @@ void bltr_invn_init(const bltr_invn_init_t* init)
 	_sensor_listener.context = _spi;
 }
 
+void bltr_invn_config(const bltr_imu_config_t* config)
+{
+	// TODO(Tomer): implement
+}
+
 void bltr_invn_start(uint32_t period)
 {
 	if(_device_mode != BLTR_IMU_MODE_DMP)

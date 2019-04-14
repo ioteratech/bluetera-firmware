@@ -104,28 +104,38 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 
 	ret_code_t err = BLTR_SUCCESS;
 	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
-	switch(cmd->command)
+	switch(cmd->which_payload)
 	{
-		case BLUETERA_IMU_COMMAND_TYPE_START:
-			// TODO(Tomer): implement correct 
-			break;
-
-		case BLUETERA_IMU_COMMAND_TYPE_STOP:
-			bltr_imu_stop();
-			break;
-
-		// TODO: deprecate set_fsr, and replace with general config
-		case BLUETERA_IMU_COMMAND_TYPE_SET_FSR:
-			bltr_imu_set_fsr(cmd->payload.fsr.acc, cmd->payload.fsr.gyro);
-			break;
-
-		case BLUETERA_IMU_COMMAND_TYPE_CONFIG:
+		case BLUETERA_IMU_COMMAND_CONFIG_TAG:
 			if(_is_running)
 			{
 				NRF_LOG_INFO("bltr_imu_handle_uplink_message() - Invalid state");
 				err = BLTR_IMU_ERROR_INVALID_STATE; 
 			}
+			else
+			{
+				bltr_imu_config_t config = 
+				{
+					.mode = cmd->payload.config.data_type,
+					.odr = cmd->payload.config.odr,
+					.acc_fsr = cmd->payload.config.acc_fsr,
+					.gyro_fsr = cmd->payload.config.gyro_fsr
+				};
+				bltr_imu_config(&config);
+			}
 			break;
+
+		case BLUETERA_IMU_COMMAND_START_TAG:
+			// TODO(Tomer): call to bltr_imu_start() (after refactoring it to accept no args)
+			_is_running = true;
+			break;
+
+		case BLUETERA_IMU_COMMAND_STOP_TAG:
+			bltr_imu_stop();
+			_is_running = false;
+			break;
+
+		
 
 		default:
 			err = BLTR_IMU_ERROR_INVALID_COMMAND;
@@ -133,6 +143,11 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	}
 
 	return err;
+}
+
+void bltr_imu_config(const bltr_imu_config_t* config)
+{
+	bltr_invn_config(config);
 }
 
 void bltr_imu_start(uint32_t period)

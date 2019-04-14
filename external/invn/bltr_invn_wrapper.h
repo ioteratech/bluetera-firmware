@@ -18,13 +18,15 @@ typedef struct
 } bltr_invn_init_t;
 
 void bltr_invn_init(const bltr_invn_init_t* init);
-void bltr_invn_start(uint32_t period);
+void bltr_invn_config(const bltr_imu_config_t* config);	// TODO(Tomer): implement
+void bltr_invn_start(uint32_t period);					// TODO(Tomer): remove argument from footprint
 void bltr_invn_stop();
-void bltr_invn_set_mode(bltr_imu_mode_t mode);
+
+void bltr_invn_set_mode(bltr_imu_mode_t mode);			// TODO(Tomer): deprecate
 void bltr_invn_update();
-void bltr_invn_set_freq_divider(uint8_t div);
-void bltr_invn_set_fsr(uint16_t acc, uint16_t gyro);
-void bltr_invn_get_fsr(uint16_t* acc, uint16_t* gyro);
+void bltr_invn_set_freq_divider(uint8_t div);			// TODO(Tomer): deprecate
+void bltr_invn_set_fsr(uint16_t acc, uint16_t gyro);	// TODO(Tomer): deprecate
+void bltr_invn_get_fsr(uint16_t* acc, uint16_t* gyro);	// TODO(Tomer): deprecate
 void bltr_invn_irq_handler();
 
 #endif // BLTR_INVN_WRAPPER_H_
