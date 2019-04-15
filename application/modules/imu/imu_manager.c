@@ -40,7 +40,7 @@
 
 static nrfx_spim_t _spi = NRFX_SPIM_INSTANCE(ICM_SPI_INSTANCE);
 static bltr_imu_data_handler_t _imu_data_handler;
-static bool _is_running = false;
+static bool _is_running = false;	// TODO(Tomer): consider moving state logic to actual driver
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
 static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
@@ -102,40 +102,33 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
 		return BLTR_SUCCESS;
 
+	ret_code_t inner_err;
 	ret_code_t err = BLTR_SUCCESS;
 	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
 	switch(cmd->which_payload)
-	{
-		case BLUETERA_IMU_COMMAND_CONFIG_TAG:
-			if(_is_running)
-			{
-				NRF_LOG_INFO("bltr_imu_handle_uplink_message() - Invalid state");
-				err = BLTR_IMU_ERROR_INVALID_STATE; 
-			}
-			else
+	{		
+		case BLUETERA_IMU_COMMAND_START_TAG:
+			// TODO(Tomer): call to bltr_imu_start() (after refactoring it to accept no args)
+			err = bltr_imu_start(0);	// TODO:(Tomer): remove argument
+			break;
+
+		case BLUETERA_IMU_COMMAND_STOP_TAG:
+			err = bltr_imu_stop();						
+			break;
+
+		case BLUETERA_IMU_COMMAND_CONFIG_TAG:			
 			{
 				bltr_imu_config_t config = 
 				{
-					.mode = cmd->payload.config.data_type,
+					.data_types = cmd->payload.config.data_types,
 					.odr = cmd->payload.config.odr,
 					.acc_fsr = cmd->payload.config.acc_fsr,
 					.gyro_fsr = cmd->payload.config.gyro_fsr
 				};
-				bltr_imu_config(&config);
+				err = bltr_imu_config(&config);
 			}
 			break;
-
-		case BLUETERA_IMU_COMMAND_START_TAG:
-			// TODO(Tomer): call to bltr_imu_start() (after refactoring it to accept no args)
-			_is_running = true;
-			break;
-
-		case BLUETERA_IMU_COMMAND_STOP_TAG:
-			bltr_imu_stop();
-			_is_running = false;
-			break;
-
-		
+	
 
 		default:
 			err = BLTR_IMU_ERROR_INVALID_COMMAND;
@@ -145,19 +138,22 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	return err;
 }
 
-void bltr_imu_config(const bltr_imu_config_t* config)
+ret_code_t bltr_imu_config(const bltr_imu_config_t* config)
 {
 	bltr_invn_config(config);
+	return BLTR_SUCCESS;		// TODO(Tomer): return real error
 }
 
-void bltr_imu_start(uint32_t period)
+ret_code_t bltr_imu_start(uint32_t period)
 {
 	bltr_invn_start(period);
+	return BLTR_SUCCESS;		// TODO(Tomer): return real error
 }
 
-void bltr_imu_stop()
+ret_code_t bltr_imu_stop()
 {
 	bltr_invn_stop();
+	return BLTR_SUCCESS;		// TODO(Tomer): return real error
 }
 
 void bltr_imu_set_mode(bltr_imu_mode_t mode)

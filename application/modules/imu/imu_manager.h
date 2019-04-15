@@ -34,9 +34,9 @@
 void bltr_imu_init(const bltr_imu_init_t* init);
 ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message);
 
-void bltr_imu_config(const bltr_imu_config_t* config);
-void bltr_imu_start(uint32_t period);					// TODO(Tomer): remove argument from footprint
-void bltr_imu_stop();
+ret_code_t bltr_imu_config(const bltr_imu_config_t* config);	// TODO(Tomer): return status code
+ret_code_t bltr_imu_start(uint32_t period);					// TODO(Tomer): remove argument from footprint; return status code
+ret_code_t bltr_imu_stop();
 void bltr_imu_set_mode(bltr_imu_mode_t mode);			// TODO(Tomer): deprecate
 void bltr_imu_poll();
 void bltr_imu_set_freq_divider(uint8_t div);			// TODO(Tomer): deprecate

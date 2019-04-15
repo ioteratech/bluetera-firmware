@@ -49,31 +49,31 @@ message DownlinkMessage
     oneof payload {
         ImuAccelerationPayload acceleration = 1;
 		ImuQuaternionPayload quaternion = 2;
-		Error error = 14;
-		EchoPayload echo = 15;
+		Error error = 16;
+		EchoPayload echo = 17;
     }
 }
 
 // Control messsages - from host to Bluetera
 enum ImuDataType {
-	QUATERNION = 1;
-	ACCELEROMETER = 2;
-	RAW = 3;
+	QUATERNION = 0x01;
+	ACCELEROMETER = 0x02;
+	RAW = 0x04;
 }
 
 message ImuConfig {
-	required ImuDataType data_type = 1;
+	required uint32 data_types = 1;
 	required uint32 odr = 2;
 	required uint32 acc_fsr = 3;
-	required uint32 gyro_fsr = 4;	
+	required uint32 gyro_fsr = 4;
 }
 
 message ImuCommand
 {	
-	oneof payload {
-		ImuConfig config = 1;
-		bool start = 2;
-		bool stop = 3;
+	oneof payload {		
+		bool start = 1;
+		bool stop = 2;
+		ImuConfig config = 3;
 	}
 }
 
@@ -81,6 +81,6 @@ message UplinkMessage
 {
 	oneof payload {
 		ImuCommand imu = 1;
-		EchoPayload echo = 15;
+		EchoPayload echo = 17;
 	}
 }

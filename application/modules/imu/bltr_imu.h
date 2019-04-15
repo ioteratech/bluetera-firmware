@@ -62,7 +62,7 @@ typedef enum
 } bltr_imu_mode_t;
 
 typedef struct {
-	bltr_imu_mode_t mode;
+	int data_types;
 	int odr;
 	int acc_fsr;
 	int gyro_fsr;

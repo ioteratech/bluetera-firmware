@@ -17,9 +17,9 @@ typedef struct
 	void* spi;
 } bltr_invn_init_t;
 
-void bltr_invn_init(const bltr_invn_init_t* init);
-void bltr_invn_config(const bltr_imu_config_t* config);	// TODO(Tomer): implement
-void bltr_invn_start(uint32_t period);					// TODO(Tomer): remove argument from footprint
+void bltr_invn_init(const bltr_invn_init_t* init);		// TODO(Tomer): return status code
+void bltr_invn_config(const bltr_imu_config_t* config);	// TODO(Tomer): implement; return status code
+void bltr_invn_start(uint32_t period);					// TODO(Tomer): remove argument from footprint; return status code
 void bltr_invn_stop();
 
 void bltr_invn_set_mode(bltr_imu_mode_t mode);			// TODO(Tomer): deprecate
