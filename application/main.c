@@ -137,15 +137,6 @@ APP_TIMER_DEF(_led_timer_id);
 #define SCHED_MAX_EVENT_DATA_SIZE		MAX(32, sizeof(ble_evt_t))
 #define SCHED_QUEUE_SIZE				256
 
-typedef enum
-{
-	IMU_BLE_UPDATE_RATE_LOW	= 50,	// 20 Hz
-	IMU_BLE_UPDATE_RATE_NORMAL = 20,	// 50 Hz
-	IMU_BLE_UPDATE_RATE_HIGH = 10   // 100 Hz
-} ImuBleUpdateRate;
-
-static ImuBleUpdateRate _selected_imu_ble_update_rate = IMU_BLE_UPDATE_RATE_NORMAL;
-
 // handle of the current connection
 static uint16_t _conn_handle = BLE_CONN_HANDLE_INVALID; 
 
@@ -166,7 +157,6 @@ static ret_code_t bluetera_messages_init();
 
 static void imu_data_handler(const bltr_imu_sensor_data_t* data);
 static void advertising_start(bool erase_bonds);
-static void on_sensor_enable(void* p_event_data, uint16_t event_size);
 static void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const * p_evt);
 static void on_ble_disconnected(void*, uint16_t);
 static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg);
@@ -216,16 +206,19 @@ int main()
 	// IMU initialization
 	nrf_delay_ms(1000);		// account for IMU wakeup delay
 
-	bltr_imu_init_t imu_init;	
-	memset(&imu_init, 0, sizeof(imu_init));
+	bltr_imu_init_t imu_init = { 0 };
 	imu_init.imu_data_handler = imu_data_handler;
 	bltr_imu_init(&imu_init);
-	bltr_imu_set_mode(BLTR_IMU_MODE_DMP);
 
-	uint16_t acc_fsr;
-	uint16_t gyro_fsr;
-	bltr_imu_get_fsr(&acc_fsr, &gyro_fsr);
-	bltr_imu_service_update_fsr(&_imu_service, acc_fsr, gyro_fsr);
+	bltr_imu_config_t imu_config =
+	{
+		.data_types = BLTR_IMU_DATA_TYPE_QUATERNION | BLTR_IMU_DATA_TYPE_ACCELEROMETER,
+		.odr = 20,
+		.acc_fsr = 4,
+		.gyro_fsr = 500
+	};
+
+	bltr_imu_config(&imu_config);
 
 	// go!
 	advertising_start(false);
@@ -429,18 +422,6 @@ static void services_init()
 
     err_code = ble_dis_init(&dis_init);
     APP_ERROR_CHECK(err_code);
-
-	// initialize IMU service
-    bltr_imu_service_init_t imu_service_init = { 0 };
-
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&imu_service_init.custom_value_char_attr_md.cccd_write_perm);
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&imu_service_init.custom_value_char_attr_md.read_perm);
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&imu_service_init.custom_value_char_attr_md.write_perm);
-
-	_imu_service.on_sensor_enable = on_sensor_enable;
-
-    err_code = bltr_imu_service_init(&_imu_service, &imu_service_init);
-    APP_ERROR_CHECK(err_code);
 }
 
 static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
@@ -643,46 +624,6 @@ static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 	// p_event_data should be always null here and event_size is always 0
 
 	bltr_imu_stop();
-}
-
-// called from scheduler
-void on_sensor_enable(void* p_event_data, uint16_t event_size)
-{
-	uint8_t* cbdata = (uint8_t*)p_event_data;
-
-	switch(cbdata[0])
-	{
-		case IMU_SENSOR_SET_ENABLED:
-			if(cbdata[1])
-			{
-				bltr_imu_set_mode(BLTR_IMU_MODE_DMP);
-				bltr_imu_start(_selected_imu_ble_update_rate);
-			}
-			else
-			{
-				bltr_imu_stop();
-			}
-			break;
-		case IMU_SENSOR_RAW:
-			if(cbdata[1])
-			{
-				bltr_imu_set_freq_divider(11); // ~102 Hz
-				bltr_imu_set_mode(BLTR_IMU_MODE_DIRECT);
-			}
-			break;
-		case IMU_SENSOR_SET_FSR:
-			{
-				uint16_t acc_fsr = *(uint16_t*)&cbdata[1];
-				uint16_t gyro_fsr = *(uint16_t*)&cbdata[3];
-
-				// TODO validate those values, currently if they are not valid
-				// bltr_imu_set_fsr will ignore them but the GATT table will show
-				// the new invalid values
-
-				bltr_imu_set_fsr(acc_fsr, gyro_fsr);
-			}
-			break;
-	}
 }
 
 // Bluetera uplink message handler

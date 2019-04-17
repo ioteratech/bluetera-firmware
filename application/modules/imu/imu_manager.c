@@ -40,7 +40,6 @@
 
 static nrfx_spim_t _spi = NRFX_SPIM_INSTANCE(ICM_SPI_INSTANCE);
 static bltr_imu_data_handler_t _imu_data_handler;
-static bool _is_running = false;	// TODO(Tomer): consider moving state logic to actual driver
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
 static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
@@ -108,8 +107,7 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	switch(cmd->which_payload)
 	{		
 		case BLUETERA_IMU_COMMAND_START_TAG:
-			// TODO(Tomer): call to bltr_imu_start() (after refactoring it to accept no args)
-			err = bltr_imu_start(0);	// TODO:(Tomer): remove argument
+			err = bltr_imu_start();
 			break;
 
 		case BLUETERA_IMU_COMMAND_STOP_TAG:
@@ -140,46 +138,22 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 
 ret_code_t bltr_imu_config(const bltr_imu_config_t* config)
 {
-	bltr_invn_config(config);
-	return BLTR_SUCCESS;		// TODO(Tomer): return real error
+	return bltr_invn_config(config);
 }
 
-ret_code_t bltr_imu_start(uint32_t period)
+ret_code_t bltr_imu_start()
 {
-	bltr_invn_start(period);
-	return BLTR_SUCCESS;		// TODO(Tomer): return real error
+	return bltr_invn_start();
 }
 
 ret_code_t bltr_imu_stop()
 {
-	bltr_invn_stop();
-	return BLTR_SUCCESS;		// TODO(Tomer): return real error
-}
-
-void bltr_imu_set_mode(bltr_imu_mode_t mode)
-{	
-	bltr_invn_set_mode(mode);
-}
-
-
-void bltr_imu_set_freq_divider(uint8_t div)
-{
-	bltr_invn_set_freq_divider(div);
+	return bltr_invn_stop();
 }
 
 void bltr_imu_poll()
 {
 	bltr_invn_poll();
-}
-
-void bltr_imu_set_fsr(uint16_t acc, uint16_t gyro)
-{
-	bltr_invn_set_fsr(acc, gyro);
-}
-
-void bltr_imu_get_fsr(uint16_t* acc, uint16_t* gyro)
-{
-	bltr_invn_get_fsr(acc, gyro);
 }
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)

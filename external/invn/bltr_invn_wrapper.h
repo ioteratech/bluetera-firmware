@@ -2,6 +2,7 @@
 #define BLTR_INVN_WRAPPER_H_
 
 #include "bltr_imu.h"
+#include "bluetera_err.h"
 
 typedef struct
 {
@@ -17,16 +18,12 @@ typedef struct
 	void* spi;
 } bltr_invn_init_t;
 
-void bltr_invn_init(const bltr_invn_init_t* init);		// TODO(Tomer): return status code
-void bltr_invn_config(const bltr_imu_config_t* config);	// TODO(Tomer): implement; return status code
-void bltr_invn_start(uint32_t period);					// TODO(Tomer): remove argument from footprint; return status code
-void bltr_invn_stop();
+ret_code_t bltr_invn_init(const bltr_invn_init_t* init);
+ret_code_t bltr_invn_config(const bltr_imu_config_t* config);
+ret_code_t bltr_invn_start();
+ret_code_t bltr_invn_stop();
 
-void bltr_invn_set_mode(bltr_imu_mode_t mode);			// TODO(Tomer): deprecate
 void bltr_invn_poll();
-void bltr_invn_set_freq_divider(uint8_t div);			// TODO(Tomer): deprecate
-void bltr_invn_set_fsr(uint16_t acc, uint16_t gyro);	// TODO(Tomer): deprecate
-void bltr_invn_get_fsr(uint16_t* acc, uint16_t* gyro);	// TODO(Tomer): deprecate
 void bltr_invn_irq_handler();
 
 #endif // BLTR_INVN_WRAPPER_H_
