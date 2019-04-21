@@ -645,7 +645,7 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 			break;
 
 		default:
-			err = BLTR_MSG_ERROR_INVALID_DATA;
+			err = BLTR_MSG_ERROR_UNSUPPORTED;
 			break;
 	}
 

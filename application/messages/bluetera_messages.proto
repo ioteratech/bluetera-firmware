@@ -20,34 +20,34 @@ message EchoPayload
 
 message Error
 {
-	 BlueteraModulesType module = 1;
-	 int32 code = 2;
-	int32 inner_code = 3; 
+	BlueteraModulesType module = 1;
+	uint32 code = 2;
+	uint32 inner_code = 3; 
 }
 
 // Data messasges - from Bluetera to host
 message ImuAccelerationPayload
 {
-	 uint32 timestamp = 1;
-	 float x = 2;
-	 float y = 3;
-	 float z = 4;
+	uint32 timestamp = 1;
+	float x = 2;
+	float y = 3;
+	float z = 4;
 }
 
 message ImuQuaternionPayload
 {
 	// TODO: consider sending only (x,y,z), and inferring w from it (the norm of the quaternion should equal 1.0)
-	 uint32 timestamp = 1;
-	 float w = 2;
-	 float x = 3;
-	 float y = 4;
-	 float z = 5;
+	uint32 timestamp = 1;
+	float w = 2;
+	float x = 3;
+	float y = 4;
+	float z = 5;
 }
 
 message DownlinkMessage
 {    
     oneof payload {
-        ImuAccelerationPayload acceleration = 1;
+		ImuAccelerationPayload acceleration = 1;
 		ImuQuaternionPayload quaternion = 2;
 		Error error = 16;
 		EchoPayload echo = 17;
@@ -63,10 +63,10 @@ enum ImuDataType {
 }
 
 message ImuConfig {
-	 fixed32 data_types = 1;
-	 uint32 odr = 2;
-	 uint32 acc_fsr = 3;
-	 uint32 gyro_fsr = 4;
+	fixed32 data_types = 1;
+	uint32 odr = 2;
+	uint32 acc_fsr = 3;
+	uint32 gyro_fsr = 4;
 }
 
 message ImuCommand

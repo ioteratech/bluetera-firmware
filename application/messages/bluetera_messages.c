@@ -61,7 +61,7 @@ ret_code_t bltr_msg_init(const bltr_msg_init_t* init)
 
 ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 {
-	ret_code_t err = BLTR_MSG_ERROR_INVALID_DATA;
+	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
 	bluetera_downlink_message_t message;
 
 	switch (data->sensor)
@@ -110,6 +110,7 @@ ret_code_t bltr_msg_send_error(bluetera_bluetera_modules_type_t module, uint32_t
 	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ERROR_TAG;
 	message.payload.error.module = module;
 	message.payload.error.code = code;
+	message.payload.error.inner_code = 0;
 
 	// try sending message
 	ret_code_t err = _try_send_message(&message);
