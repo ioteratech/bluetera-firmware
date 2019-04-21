@@ -61,7 +61,7 @@ ret_code_t bltr_msg_init(const bltr_msg_init_t* init)
 
 ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 {
-	ret_code_t err = BLTR_MSG_ERROR_IGNORED;
+	ret_code_t err = BLTR_MSG_ERROR_INVALID_DATA;
 	bluetera_downlink_message_t message;
 
 	switch (data->sensor)

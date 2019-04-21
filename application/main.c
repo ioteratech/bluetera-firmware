@@ -636,7 +636,7 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 	switch(msg->which_payload)
 	{
 		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
-			bltr_msg_send_echo(msg->payload.echo.value);
+			err = bltr_msg_send_echo(msg->payload.echo.value);
 			break;
 
 		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
@@ -645,7 +645,7 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 			break;
 
 		default:
-			/* TODO */
+			err = BLTR_MSG_ERROR_INVALID_DATA;
 			break;
 	}
 
