@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package bluetera;
 
@@ -9,39 +9,39 @@ package bluetera;
 // Generic payloads / enums
 enum BlueteraModulesType
 {
-	IMU = 1;
-	SDCARD = 2;
+	IMU = 0;
+	SDCARD = 1;
 }
 
 message EchoPayload
 {
-	required string value = 1;
+	 string value = 1;
 }
 
 message Error
 {
-	required BlueteraModulesType module = 1;
-	required int32 code = 2;
-	optional int32 inner_code = 3; 
+	 BlueteraModulesType module = 1;
+	 int32 code = 2;
+	int32 inner_code = 3; 
 }
 
 // Data messasges - from Bluetera to host
 message ImuAccelerationPayload
 {
-	required uint32 timestamp = 1;
-	required float x = 2;
-	required float y = 3;
-	required float z = 4;
+	 uint32 timestamp = 1;
+	 float x = 2;
+	 float y = 3;
+	 float z = 4;
 }
 
 message ImuQuaternionPayload
 {
 	// TODO: consider sending only (x,y,z), and inferring w from it (the norm of the quaternion should equal 1.0)
-	required uint32 timestamp = 1;
-	required float w = 2;
-	required float x = 3;
-	required float y = 4;
-	required float z = 5;
+	 uint32 timestamp = 1;
+	 float w = 2;
+	 float x = 3;
+	 float y = 4;
+	 float z = 5;
 }
 
 message DownlinkMessage
@@ -56,16 +56,17 @@ message DownlinkMessage
 
 // Control messsages - from host to Bluetera
 enum ImuDataType {
+    UNKNOWN = 0x00;
 	QUATERNION = 0x01;
 	ACCELEROMETER = 0x02;
 	RAW = 0x04;
 }
 
 message ImuConfig {
-	required fixed32 data_types = 1;
-	required uint32 odr = 2;
-	required uint32 acc_fsr = 3;
-	required uint32 gyro_fsr = 4;
+	 fixed32 data_types = 1;
+	 uint32 odr = 2;
+	 uint32 acc_fsr = 3;
+	 uint32 gyro_fsr = 4;
 }
 
 message ImuCommand
