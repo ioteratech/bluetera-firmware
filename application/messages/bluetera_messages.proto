@@ -9,8 +9,9 @@ package bluetera;
 // Generic payloads / enums
 enum BlueteraModulesType
 {
-	IMU = 0;
-	SDCARD = 1;
+	SYSTEM = 0;
+	IMU = 1;
+	SDCARD = 2;
 }
 
 message EchoPayload
@@ -22,7 +23,6 @@ message Error
 {
 	BlueteraModulesType module = 1;
 	uint32 code = 2;
-	uint32 inner_code = 3; 
 }
 
 // Data messasges - from Bluetera to host

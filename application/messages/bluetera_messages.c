@@ -69,18 +69,28 @@ ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 		case BLTR_IMU_SENSOR_TYPE_ACCELEROMETER:
 			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
 			message.payload.acceleration.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message.payload.acceleration.has_timestamp = true;
 			message.payload.acceleration.x = data->acceleration[0];
+			message.payload.acceleration.has_x = true;
 			message.payload.acceleration.y = data->acceleration[1];
+			message.payload.acceleration.has_y = true;
 			message.payload.acceleration.z = data->acceleration[2];
+			message.payload.acceleration.has_z = true;
 			err = _try_send_message(&message);
 			break;
 	
 		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
 			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_QUATERNION_TAG;
 			message.payload.quaternion.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message.payload.quaternion.has_timestamp = true;
+			message.payload.quaternion.w = data->acceleration[0];
+			message.payload.quaternion.has_w = true;
 			message.payload.quaternion.x = data->acceleration[1];
+			message.payload.quaternion.has_x = true;
 			message.payload.quaternion.y = data->acceleration[2];
+			message.payload.quaternion.has_y = true;
 			message.payload.quaternion.z = data->acceleration[3];
+			message.payload.quaternion.has_z = true;
 			err = _try_send_message(&message);
 			break;
 
@@ -97,6 +107,7 @@ ret_code_t bltr_msg_send_echo(const uint8_t data[8])
 	bluetera_downlink_message_t message;
 	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ECHO_TAG;
 	memcpy(message.payload.echo.value, data, sizeof(message.payload.echo.value));
+	message.payload.echo.has_value = true;
 
 	// try sending message
 	ret_code_t err = _try_send_message(&message);
@@ -107,10 +118,11 @@ ret_code_t bltr_msg_send_error(bluetera_bluetera_modules_type_t module, uint32_t
 {
 	// build message
 	bluetera_downlink_message_t message;
-	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ERROR_TAG;
+	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ERROR_TAG;	
 	message.payload.error.module = module;
+	message.payload.error.has_module = true;
 	message.payload.error.code = code;
-	message.payload.error.inner_code = 0;
+	message.payload.error.has_code = true;
 
 	// try sending message
 	ret_code_t err = _try_send_message(&message);
@@ -135,8 +147,9 @@ static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 		return BLTR_MSG_ERROR_OP_FAILED;
 	}
 
-	// send message (will fail if not enough space)
+	// send message (will fail if not enough space)	
 	uint16_t data_length = ostream.bytes_written;
+	NRF_LOG_HEXDUMP_INFO(_obuffer, data_length);
 	err_code = ble_bus_data_send(&_bus, _obuffer, &data_length);
 
 	return err_code;

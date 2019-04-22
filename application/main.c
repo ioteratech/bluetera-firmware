@@ -631,8 +631,8 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 {
 	NRF_LOG_DEBUG("bluetera_uplink_message_handler(): msg->which_payload = %d", msg->which_payload);
 
-	ret_code_t err;
-	bluetera_bluetera_modules_type_t module;
+	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
+	bluetera_bluetera_modules_type_t module = BLUETERA_BLUETERA_MODULES_TYPE_SYSTEM;
 	switch(msg->which_payload)
 	{
 		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
@@ -645,12 +645,15 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 			break;
 
 		default:
-			err = BLTR_MSG_ERROR_UNSUPPORTED;
+			/* no action */
 			break;
 	}
 
 	if(err != BLTR_SUCCESS)
-		bltr_msg_send_error(module, (uint32_t)err);
+	{
+		NRF_LOG_WARNING("bluetera_uplink_message_handler() failed: module = %d, code = %d", module, err);
+		bltr_msg_send_error(module, err);
+	}
 }
 
 static ret_code_t bluetera_messages_init()

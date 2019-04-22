@@ -54,7 +54,7 @@
 
 /* Bluetera messages */
 #ifndef BLTR_MSG_CONFIG_LOG_ENABLED
-#define BLTR_MSG_CONFIG_LOG_ENABLED 0
+#define BLTR_MSG_CONFIG_LOG_ENABLED 1
 #endif
 
 #ifndef BLTR_MSG_CONFIG_LOG_LEVEL
