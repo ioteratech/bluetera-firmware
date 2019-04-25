@@ -122,7 +122,7 @@ ret_code_t bltr_invn_config(const bltr_imu_config_t* config)
 	if(_device_mode != IMU_MODE_UNINITIALIZED && _device_mode != IMU_MODE_CONFIGURED)
 		return BLTR_IMU_ERROR_INVALID_STATE;
 
-	// vetify fsr's
+	// verify fsr's
 
 	AccFullscaleRange real_acc_fsr = _num_to_acc_fsr_enum(config->acc_fsr);
 
@@ -178,7 +178,7 @@ ret_code_t bltr_invn_start()
 		inv_device_start_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
 	}
 
-	_device_mode == IMU_MODE_DMP;
+	_device_mode = IMU_MODE_DMP;
 
 	return BLTR_SUCCESS;
 }
