@@ -189,6 +189,7 @@ ret_code_t bltr_invn_stop()
 	{
 		case IMU_MODE_DMP:
 			_uninit_dmp();
+			_device_mode = IMU_MODE_CONFIGURED;
 			return BLTR_SUCCESS;
 		case IMU_MODE_DIRECT:
 			// TODO(tomer) implement
