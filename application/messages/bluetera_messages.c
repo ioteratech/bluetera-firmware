@@ -149,7 +149,7 @@ static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 
 	// send message (will fail if not enough space)	
 	uint16_t data_length = ostream.bytes_written;
-	NRF_LOG_HEXDUMP_INFO(_obuffer, data_length);
+	//NRF_LOG_HEXDUMP_INFO(_obuffer, data_length);
 	err_code = ble_bus_data_send(&_bus, _obuffer, &data_length);
 
 	return err_code;
