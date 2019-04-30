@@ -152,8 +152,8 @@ ret_code_t bltr_invn_start(const bltr_imu_config_t* config)
 	// otherwise it will ignore our ODR (sample rate) settings
 	if(_current_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION || _current_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
 	{
-		inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR, _current_config.odr);
-		inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_ACCELEROMETER, _current_config.odr);
+		inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR, 1000.0f / _current_config.odr);
+		inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_ACCELEROMETER, 1000.0f / _current_config.odr);
 		
 		inv_device_start_sensor(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR);
 		inv_device_start_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
