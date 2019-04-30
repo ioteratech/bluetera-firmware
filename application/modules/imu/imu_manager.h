@@ -34,8 +34,7 @@
 void bltr_imu_init(const bltr_imu_init_t* init);
 ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message);
 
-ret_code_t bltr_imu_config(const bltr_imu_config_t* config);
-ret_code_t bltr_imu_start();
+ret_code_t bltr_imu_start(const bltr_imu_config_t* config);
 ret_code_t bltr_imu_stop();
 void bltr_imu_poll();
 

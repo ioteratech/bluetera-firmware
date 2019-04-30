@@ -107,26 +107,23 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	switch(cmd->which_payload)
 	{		
 		case BLUETERA_IMU_COMMAND_START_TAG:
-			err = bltr_imu_start();
+			{
+				bltr_imu_config_t config = 
+				{
+					.data_types = cmd->payload.start.data_types,
+					.odr = cmd->payload.start.odr,
+					.acc_fsr = cmd->payload.start.acc_fsr,
+					.gyro_fsr = cmd->payload.start.gyro_fsr
+				};
+
+				err = bltr_imu_start(&config);
+			}
+
 			break;
 
 		case BLUETERA_IMU_COMMAND_STOP_TAG:
 			err = bltr_imu_stop();						
 			break;
-
-		case BLUETERA_IMU_COMMAND_CONFIG_TAG:			
-			{
-				bltr_imu_config_t config = 
-				{
-					.data_types = cmd->payload.config.data_types,
-					.odr = cmd->payload.config.odr,
-					.acc_fsr = cmd->payload.config.acc_fsr,
-					.gyro_fsr = cmd->payload.config.gyro_fsr
-				};
-				err = bltr_imu_config(&config);
-			}
-			break;
-	
 
 		default:
 			err = BLTR_IMU_ERROR_INVALID_COMMAND;
@@ -136,14 +133,9 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	return err;
 }
 
-ret_code_t bltr_imu_config(const bltr_imu_config_t* config)
+ret_code_t bltr_imu_start(const bltr_imu_config_t* config)
 {
-	return bltr_invn_config(config);
-}
-
-ret_code_t bltr_imu_start()
-{
-	return bltr_invn_start();
+	return bltr_invn_start(config);
 }
 
 ret_code_t bltr_imu_stop()

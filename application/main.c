@@ -209,17 +209,7 @@ int main()
 	bltr_imu_init_t imu_init = { 0 };
 	imu_init.imu_data_handler = imu_data_handler;
 	bltr_imu_init(&imu_init);
-
-	bltr_imu_config_t imu_config =
-	{
-		.data_types = BLTR_IMU_DATA_TYPE_QUATERNION | BLTR_IMU_DATA_TYPE_ACCELEROMETER,
-		.odr = 20,
-		.acc_fsr = 4,
-		.gyro_fsr = 500
-	};
-
-	bltr_imu_config(&imu_config);
-
+	
 	// go!
 	advertising_start(false);
 

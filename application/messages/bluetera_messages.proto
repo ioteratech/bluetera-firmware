@@ -62,7 +62,7 @@ enum ImuDataType {
 	RAW = 0x04;
 }
 
-message ImuConfig {
+message ImuStart {
 	fixed32 data_types = 1;
 	uint32 odr = 2;
 	uint32 acc_fsr = 3;
@@ -71,10 +71,9 @@ message ImuConfig {
 
 message ImuCommand
 {	
-	oneof payload {		
-		bool start = 1;
+	oneof payload {
+		ImuStart start = 1;
 		bool stop = 2;
-		ImuConfig config = 3;
 	}
 }
 

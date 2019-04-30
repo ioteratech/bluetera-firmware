@@ -74,8 +74,7 @@ static uint8_t _freq_div;
 
 typedef enum
 {
-	IMU_MODE_UNINITIALIZED,
-	IMU_MODE_CONFIGURED,
+	IMU_MODE_STOPPED,
 	IMU_MODE_DMP,
 	IMU_MODE_DIRECT
 } bltr_imu_mode_t;
@@ -97,7 +96,7 @@ static AccFullscaleRange _num_to_acc_fsr_enum(uint16_t fsr);
 ret_code_t bltr_invn_init(const bltr_invn_init_t* init)
 {
 	_freq_div = 0;
-	_device_mode = IMU_MODE_UNINITIALIZED;
+	_device_mode = IMU_MODE_STOPPED;
 
 	_imu_data_handler = init->imu_data_handler;
 	_imu_irq_data_handler = init->imu_irq_data_handler;
@@ -117,45 +116,27 @@ ret_code_t bltr_invn_init(const bltr_invn_init_t* init)
 	// TODO(tomer) verify that IMU is physically connected, and return an error based on that
 }
 
-ret_code_t bltr_invn_config(const bltr_imu_config_t* config)
+ret_code_t bltr_invn_start(const bltr_imu_config_t* config)
 {
-	if(_device_mode != IMU_MODE_UNINITIALIZED && _device_mode != IMU_MODE_CONFIGURED)
-		return BLTR_IMU_ERROR_INVALID_STATE;
+	if(_device_mode == IMU_MODE_DMP || _device_mode == IMU_MODE_DIRECT)
+		return BLTR_SUCCESS;
 
 	// verify fsr's
 
 	AccFullscaleRange real_acc_fsr = _num_to_acc_fsr_enum(config->acc_fsr);
 
 	if(real_acc_fsr == ACC_FSR_INVALID)
-	{
-		_device_mode = IMU_MODE_UNINITIALIZED;
 		return BLTR_IMU_ERROR_INVALID_CONFIG;
-	}
 
 	GyroFullscaleRange real_gyro_fsr = _num_to_gyro_fsr_enum(config->gyro_fsr);
 
 	if(real_gyro_fsr == GYRO_FSR_INVALID)
-	{
-		_device_mode = IMU_MODE_UNINITIALIZED;
 		return BLTR_IMU_ERROR_INVALID_CONFIG;
-	}
 
 	// TODO(tomer) verify "config.odr"
 	// TODO(tomer) check for allowed combinations of "config.data_types"
 
 	_current_config = *config;
-	_device_mode = IMU_MODE_CONFIGURED;
-
-	return BLTR_SUCCESS;
-}
-
-ret_code_t bltr_invn_start()
-{
-	if(_device_mode == IMU_MODE_DMP || _device_mode == IMU_MODE_DIRECT)
-		return BLTR_SUCCESS;
-	
-	if(_device_mode != IMU_MODE_CONFIGURED)
-		return BLTR_IMU_ERROR_INVALID_STATE;
 
 	// TODO(tomer) implement the rest of the data types, and select the correct operation mode (dmp or direct) according to different combinations and rates
 
@@ -189,13 +170,12 @@ ret_code_t bltr_invn_stop()
 	{
 		case IMU_MODE_DMP:
 			_uninit_dmp();
-			_device_mode = IMU_MODE_CONFIGURED;
+			_device_mode = IMU_MODE_STOPPED;
 			return BLTR_SUCCESS;
 		case IMU_MODE_DIRECT:
 			// TODO(tomer) implement
 			return BLTR_SUCCESS;
-		case IMU_MODE_UNINITIALIZED:
-		case IMU_MODE_CONFIGURED:
+		case IMU_MODE_STOPPED:
 			return BLTR_SUCCESS;
 	}
 
