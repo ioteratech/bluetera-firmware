@@ -373,20 +373,29 @@ static void _inv_sensor_listener_event_cb(const inv_sensor_event_t* event, void*
 {
 	bltr_imu_sensor_data_t sensor_data;
 	sensor_data.timestamp = event->timestamp;
+	bool send_data = false;
 
 	if (event->status == INV_SENSOR_STATUS_DATA_UPDATED)
 	{
 		switch (INV_SENSOR_ID_TO_TYPE(event->sensor))
 		{
 			case INV_SENSOR_TYPE_ACCELEROMETER:
-				sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ACCELEROMETER;				
-				memcpy(sensor_data.acceleration, event->data.acc.vect, sizeof( event->data.acc.vect));
+				if(_current_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
+				{
+					sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ACCELEROMETER;				
+					memcpy(sensor_data.acceleration, event->data.acc.vect, sizeof( event->data.acc.vect));
+					send_data = true;
+				}
 				break;
 
 			case INV_SENSOR_TYPE_GAME_ROTATION_VECTOR:
 			case INV_SENSOR_TYPE_ROTATION_VECTOR:
-				sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR;
-				memcpy(sensor_data.quaternion, event->data.quaternion.quat, sizeof(event->data.quaternion.quat));				
+				if(_current_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION)
+				{
+					sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR;
+					memcpy(sensor_data.quaternion, event->data.quaternion.quat, sizeof(event->data.quaternion.quat));
+					send_data = true;
+				}
 				break;
 
 			case INV_SENSOR_TYPE_RAW_ACCELEROMETER:
@@ -394,9 +403,10 @@ static void _inv_sensor_listener_event_cb(const inv_sensor_event_t* event, void*
 			default:
 				return;
 		}
-
-		_imu_data_handler(&sensor_data);
 	}
+
+	if(send_data)
+		_imu_data_handler(&sensor_data);
 }
 
 static uint16_t _gyro_fsr_enum_to_num(GyroFullscaleRange fsr)
