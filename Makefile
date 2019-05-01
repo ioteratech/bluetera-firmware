@@ -5,7 +5,7 @@ OUTPUT_DIRECTORY 		:= _build
 INVN_LIB_NAME 			:= imu_driver
 
 # Commands
-MV := mv
+MV := mv -f
 
 # Directories
 SDK_ROOT := $(NRF_SDK_ROOTS)/nRF5_SDK_15.2.0_9412b96
@@ -297,6 +297,7 @@ build_invn_lib:
 	$(CC) -c $(SRC_INVENSENSE) -I$(EXTERNAL_DIR) -I$(APP_DIR)/modules/imu -I$(APP_DIR)/utilities $(CFLAGS)
 	$(MV) *.o "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
 	"$(GNU_INSTALL_ROOT)$(GNU_PREFIX)-ar" rcs "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a" $(INVN_LIB_OBJ_LOC)
+	$(MV) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a" "$(EXTERNAL_DIR)/invn"
 
 erase:
 	nrfjprog -f nrf52 --eraseall
