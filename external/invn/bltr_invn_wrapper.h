@@ -22,9 +22,6 @@
 	SOFTWARE.
 */
 
-// This wrapper is built around the ICM20649 Embedded Motion Driver Ver 3.8.1.
-// Can be downloaded from Invensense/TDK website.
-
 #ifndef BLTR_INVN_WRAPPER_H_
 #define BLTR_INVN_WRAPPER_H_
 
@@ -44,14 +41,11 @@ typedef struct
 	void* spi;
 } bltr_invn_init_t;
 
-void bltr_invn_init(const bltr_invn_init_t* init);
-void bltr_invn_start(uint32_t period);
-void bltr_invn_stop();
-void bltr_invn_set_mode(bltr_imu_mode_t mode);
-void bltr_invn_update();
-void bltr_invn_set_freq_divider(uint8_t div);
-void bltr_invn_set_fsr(uint16_t acc, uint16_t gyro);
-void bltr_invn_get_fsr(uint16_t* acc, uint16_t* gyro);
+uint32_t bltr_invn_init(const bltr_invn_init_t* init);
+uint32_t bltr_invn_start(const bltr_imu_config_t* config);
+uint32_t bltr_invn_stop();
+
+void bltr_invn_poll();
 void bltr_invn_irq_handler();
 
 #endif // BLTR_INVN_WRAPPER_H_

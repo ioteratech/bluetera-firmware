@@ -1,14 +1,26 @@
+# Global defines
 PROJECT_NAME     		:= bluetera
 TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
 
+# Directories
 SDK_ROOT := $(NRF_SDK_ROOTS)/nRF5_SDK_15.2.0_9412b96
 PROJ_DIR := .
 APP_DIR := $(PROJ_DIR)/application
 EXTERNAL_DIR := $(PROJ_DIR)/external
 
+# Hardware
 BLUETERA_BOARD := BLUETERA_BOARD_V1
 
+# Invensense ICM20649 library
+SRC_INVENSENSE = $(wildcard $(EXTERNAL_DIR)/invn/*.c) \
+  $(wildcard $(EXTERNAL_DIR)/invn/Devices/*.c) \
+  $(wildcard $(EXTERNAL_DIR)/invn/Devices/Drivers/Icm20649/*.c) \
+  $(wildcard $(EXTERNAL_DIR)/invn/EmbUtils/*.c)
+  
+INC_INVENSENSE = $(EXTERNAL_DIR) \
+  $(EXTERNAL_DIR)/invn 
+  
 # print variable
 # $(info $$SRC_INVENSENSE is [${SRC_INVENSENSE}])
 
@@ -81,8 +93,14 @@ SRC_FILES += \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
-  $(APP_DIR)/utils.c \
-  $(APP_DIR)/modules/imu/icm_driver.c \
+  $(SDK_ROOT)/external/nano-pb/pb_common.c \
+  $(SDK_ROOT)/external/nano-pb/pb_decode.c \
+  $(SDK_ROOT)/external/nano-pb/pb_encode.c \
+  $(APP_DIR)/utilities/utils.c \
+  $(APP_DIR)/messages/bluetera_messages.pb.c \
+  $(APP_DIR)/messages/bluetera_messages.c \
+  $(APP_DIR)/services/bus/ble_bus.c \
+  $(APP_DIR)/modules/imu/imu_manager.c \
   $(APP_DIR)/modules/imu/imu_service.c \
   $(APP_DIR)/main.c
 
@@ -147,9 +165,13 @@ INC_FOLDERS += \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/external/fprintf \
   $(SDK_ROOT)/external/segger_rtt \
+  $(SDK_ROOT)/external/nano-pb \
   $(APP_DIR) \
   $(APP_DIR)/config \
-  $(APP_DIR)/modules/boards \
+  $(APP_DIR)/utilities \
+  $(APP_DIR)/services/bus \
+  $(APP_DIR)/messages \
+  $(APP_DIR)/boards \
   $(APP_DIR)/modules/imu \
   $(EXTERNAL_DIR)/invn
   

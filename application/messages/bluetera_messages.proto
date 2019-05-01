@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package bluetera;
+
+// Version 0.0
+// TODO: implement other sensors/sub modules (e.g. sd-card)
+// TODO: add all relevant enums/types 
+
+// Generic payloads / enums
+enum BlueteraModulesType
+{
+	SYSTEM = 0;
+	IMU = 1;
+	SDCARD = 2;
+}
+
+message EchoPayload
+{
+	 uint32 value = 1;
+}
+
+message Error
+{
+	BlueteraModulesType module = 1;
+	uint32 code = 2;
+}
+
+// Data messasges - from Bluetera to host
+message ImuAccelerationPayload
+{
+	uint32 timestamp = 1;
+	float x = 2;
+	float y = 3;
+	float z = 4;
+}
+
+message ImuQuaternionPayload
+{
+	// TODO: consider sending only (x,y,z), and inferring w from it (the norm of the quaternion should equal 1.0)
+	uint32 timestamp = 1;
+	float w = 2;
+	float x = 3;
+	float y = 4;
+	float z = 5;
+}
+
+message DownlinkMessage
+{    
+    oneof payload {
+		ImuAccelerationPayload acceleration = 1;
+		ImuQuaternionPayload quaternion = 2;
+		Error error = 16;
+		EchoPayload echo = 17;
+    }
+}
+
+// Control messsages - from host to Bluetera
+enum ImuDataType {
+    UNKNOWN = 0x00;
+	QUATERNION = 0x01;
+	ACCELEROMETER = 0x02;
+	RAW = 0x04;
+}
+
+message ImuStart {
+	fixed32 data_types = 1;
+	uint32 odr = 2;
+	uint32 acc_fsr = 3;
+	uint32 gyro_fsr = 4;
+}
+
+message ImuCommand
+{	
+	oneof payload {
+		ImuStart start = 1;
+		bool stop = 2;
+	}
+}
+
+message UplinkMessage
+{
+	oneof payload {
+		ImuCommand imu = 1;
+		EchoPayload echo = 17;
+	}
+}

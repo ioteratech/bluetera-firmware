@@ -60,10 +60,11 @@
 #include <nrfx_timer.h>
 
 #include "bluetera_boards.h"
-#include "icm_driver.h"
+#include "imu_manager.h"
 #include "imu_service.h"
+#include "bluetera_messages.h"
 #include "utils.h"
-#include "application_constants.h"
+#include "bluetera_constants.h"
 
 // The advertising interval (in units of 0.625 ms)
 #define	APP_ADV_INTERVAL 					300
@@ -136,15 +137,6 @@ APP_TIMER_DEF(_led_timer_id);
 #define SCHED_MAX_EVENT_DATA_SIZE		MAX(32, sizeof(ble_evt_t))
 #define SCHED_QUEUE_SIZE				256
 
-typedef enum
-{
-	IMU_BLE_UPDATE_RATE_LOW	= 50,	// 20 Hz
-	IMU_BLE_UPDATE_RATE_NORMAL = 20,	// 50 Hz
-	IMU_BLE_UPDATE_RATE_HIGH = 10   // 100 Hz
-} ImuBleUpdateRate;
-
-static ImuBleUpdateRate _selected_imu_ble_update_rate = IMU_BLE_UPDATE_RATE_NORMAL;
-
 // handle of the current connection
 static uint16_t _conn_handle = BLE_CONN_HANDLE_INVALID; 
 
@@ -161,13 +153,13 @@ static void services_init();
 static void advertising_init();
 static void conn_params_init();
 static void peer_manager_init();
-// static void sensor_event_callback(const inv_sensor_event_t* event, void* arg);
-// static void sensor_raw_data_no_dmp_callback(void* data, uint16_t event_size);
+static ret_code_t bluetera_messages_init();
+
 static void imu_data_handler(const bltr_imu_sensor_data_t* data);
 static void advertising_start(bool erase_bonds);
-static void on_sensor_enable(void* p_event_data, uint16_t event_size);
 static void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const * p_evt);
 static void on_ble_disconnected(void*, uint16_t);
+static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg);
 
 int main()
 {
@@ -190,10 +182,12 @@ int main()
 	err_code = nrf_ble_gatt_init(&_gatt, gatt_evt_handler);
 	APP_ERROR_CHECK(err_code);
 	services_init();
+	bluetera_messages_init();
 	advertising_init();
 	conn_params_init();
 	peer_manager_init();	
 
+	// Can be used to debug realtime stuff with an oscilloscope by changing the GPIO state from points of interest.
 	// nrfx_gpiote_out_config_t debug_pin = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(false);
 	// nrfx_gpiote_out_init(DEBUG_GPIO_TIMING, &debug_pin);
 
@@ -213,23 +207,16 @@ int main()
 	// IMU initialization
 	nrf_delay_ms(1000);		// account for IMU wakeup delay
 
-	bltr_imu_init_t imu_init;	
-	memset(&imu_init, 0, sizeof(imu_init));
+	bltr_imu_init_t imu_init = { 0 };
 	imu_init.imu_data_handler = imu_data_handler;
 	bltr_imu_init(&imu_init);
-	bltr_imu_set_mode(BLTR_IMU_MODE_DMP);
-
-	uint16_t acc_fsr;
-	uint16_t gyro_fsr;
-	bltr_imu_get_fsr(&acc_fsr, &gyro_fsr);
-	bltr_imu_service_update_fsr(&_imu_service, acc_fsr, gyro_fsr);
-
+	
 	// go!
 	advertising_start(false);
 
 	while(true)
 	{
-		bltr_imu_update();		
+		bltr_imu_poll();		
 		app_sched_execute();
 
 		// if there are no pending log operations, then sleep until next the next event occurs
@@ -426,18 +413,6 @@ static void services_init()
 
     err_code = ble_dis_init(&dis_init);
     APP_ERROR_CHECK(err_code);
-
-	// initialize IMU service
-    bltr_imu_service_init_t imu_service_init = { 0 };
-
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&imu_service_init.custom_value_char_attr_md.cccd_write_perm);
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&imu_service_init.custom_value_char_attr_md.read_perm);
-	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&imu_service_init.custom_value_char_attr_md.write_perm);
-
-	_imu_service.on_sensor_enable = on_sensor_enable;
-
-    err_code = bltr_imu_service_init(&_imu_service, &imu_service_init);
-    APP_ERROR_CHECK(err_code);
 }
 
 static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
@@ -630,88 +605,9 @@ static void advertising_init()
 // synced with main thread
 static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 {
-	if (_conn_handle == BLE_CONN_HANDLE_INVALID)
-		return;
-
-	uint32_t timestamp = (uint32_t)(data->timestamp / 1000.0f);
-	switch (data->sensor)
-	{
-		case BLTR_IMU_SENSOR_TYPE_ACCELEROMETER:
-		{
-			// characteristic format:
-			// [4 bytes]:   timestamp (milliseconds)
-			// [12 bytes]:	accelerometer data [x, y, z]
-			uint8_t _acc_data[CHAR_ACC_LENGTH] = { 0 };			
-			memcpy(_acc_data, &timestamp, 4);
-			memcpy(_acc_data + 4, data->acceleration, 12);			
-			bltr_imu_service_update_acc(&_imu_service, _acc_data);
-		}
-			break;
-	
-		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
-		{
-			// characteristic format:
-			// [4 bytes]:   timestamp (milliseconds)
-			// [16 bytes]:  quaternion data [w, x, y, z]
-			uint8_t _quat_data[CHAR_QUAT_LENGTH] = { 0 };
-			memcpy(_quat_data, &timestamp, 4);
-			memcpy(_quat_data + 4, data->quaternion, 16);
-			bltr_imu_service_update_quat(&_imu_service, _quat_data);
-		}
-			break;
-
-		default:
-			break;
-	}
+	if (_conn_handle != BLE_CONN_HANDLE_INVALID)
+		bltr_msg_send_sensor_data(data);
 }
-
-/*
-static void sensor_event_callback(const inv_sensor_event_t* event, void* arg)
-{
-	if (_conn_handle == BLE_CONN_HANDLE_INVALID)
-		return;
-
-	if (event->status == INV_SENSOR_STATUS_DATA_UPDATED)
-	{
-		switch (INV_SENSOR_ID_TO_TYPE(event->sensor))
-		{
-			case INV_SENSOR_TYPE_RAW_ACCELEROMETER:
-			case INV_SENSOR_TYPE_RAW_GYROSCOPE:
-				break;
-			case INV_SENSOR_TYPE_ACCELEROMETER:
-				{
-					// format
-					// [4 bytes]:   timestamp (milliseconds)
-					// [12 bytes]:	accelerometer data [x, y, z]
-					uint8_t _acc_data[CHAR_ACC_LENGTH] = { 0 };
-
-					uint32_t timestamp = (uint32_t)((float)event->timestamp / 1000.0f);
-					memcpy(_acc_data, &timestamp, 4);
-					memcpy(_acc_data + 4, event->data.acc.vect, 12);
-					
-					bltr_imu_service_update_acc(&_imu_service, _acc_data);
-				}
-				break;
-			case INV_SENSOR_TYPE_GAME_ROTATION_VECTOR:
-			case INV_SENSOR_TYPE_ROTATION_VECTOR:
-				{
-					// format
-					// [4 bytes]:   timestamp (milliseconds)
-					// [16 bytes]:  quaternion data [w, x, y, z]
-					uint8_t _quat_data[CHAR_QUAT_LENGTH] = { 0 };
-
-					uint32_t timestamp = (uint32_t)((float)event->timestamp / 1000.0f);
-					memcpy(_quat_data, &timestamp, 4);
-					memcpy(_quat_data + 4, event->data.quaternion.quat, 16);
-					bltr_imu_service_update_quat(&_imu_service, _quat_data);
-				}
-				break;
-			default:
-				break;
-		}
-	}
-}
-*/
 
 // synced with scheduler
 static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
@@ -721,78 +617,42 @@ static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 	bltr_imu_stop();
 }
 
-// synced with scheduler
-/*
-static void sensor_raw_data_no_dmp_callback(void* data, uint16_t event_size)
+// Bluetera uplink message handler
+static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 {
-	// TODO find a way to avoid so much copying
-	
-	uint8_t* rd = (uint8_t*)data;
+	NRF_LOG_DEBUG("bluetera_uplink_message_handler(): msg->which_payload = %d", msg->which_payload);
 
-	int16_t acc[3] = { 0 }; // [x, y, z]
-	acc[0] = (rd[0] << 8) | rd[1];
-	acc[1] = (rd[2] << 8) | rd[3];
-	acc[2] = (rd[4] << 8) | rd[5];
-
-	int16_t gyro[3] = { 0 }; // [x, y, z]
-	gyro[0] = (rd[6] << 8) | rd[7];
-	gyro[1] = (rd[8] << 8) | rd[9];
-	gyro[2] = (rd[10] << 8) | rd[11];
-
-	if (_conn_handle != BLE_CONN_HANDLE_INVALID)
+	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
+	bluetera_bluetera_modules_type_t module = BLUETERA_BLUETERA_MODULES_TYPE_SYSTEM;
+	switch(msg->which_payload)
 	{
-		// format
-		// [4 bytes]: timestamp (milliseconds)
-		// [6 bytes]: accelerometer data [x, y, z]
-		// [6 bytes]: gyroscope  data [x, y, z]
+		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
+			err = bltr_msg_send_echo(msg->payload.echo.value);
+			break;
 
-		uint8_t raw_data[CHAR_RAW_ACC_GYRO_LENGTH] = { 0 };
-		uint32_t timestamp = (uint32_t)((float)*((uint64_t*)(data + 12)) / 1000.0f);
+		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
+			module = BLUETERA_BLUETERA_MODULES_TYPE_IMU;
+			err = bltr_imu_handle_uplink_message(msg);
+			break;
 
-		memcpy(raw_data, &timestamp, 4);
-		memcpy(raw_data + 4, acc, 6);
-		memcpy(raw_data + 10, gyro, 6);
-		bltr_imu_service_update_raw(&_imu_service, raw_data);
+		default:
+			/* no action */
+			break;
+	}
+
+	if(err != BLTR_SUCCESS)
+	{
+		NRF_LOG_WARNING("bluetera_uplink_message_handler() failed: module = %d, code = %d", module, err);
+		bltr_msg_send_error(module, err);
 	}
 }
-*/
 
-// called from scheduler
-void on_sensor_enable(void* p_event_data, uint16_t event_size)
+static ret_code_t bluetera_messages_init()
 {
-	uint8_t* cbdata = (uint8_t*)p_event_data;
-
-	switch(cbdata[0])
+	bltr_msg_init_t context = 
 	{
-		case IMU_SENSOR_SET_ENABLED:
-			if(cbdata[1])
-			{
-				bltr_imu_set_mode(BLTR_IMU_MODE_DMP);
-				bltr_imu_start(_selected_imu_ble_update_rate);
-			}
-			else
-			{
-				bltr_imu_stop();
-			}
-			break;
-		case IMU_SENSOR_RAW:
-			if(cbdata[1])
-			{
-				bltr_imu_set_freq_divider(11); // ~102 Hz
-				bltr_imu_set_mode(BLTR_IMU_MODE_DIRECT);
-			}
-			break;
-		case IMU_SENSOR_SET_FSR:
-			{
-				uint16_t acc_fsr = *(uint16_t*)&cbdata[1];
-				uint16_t gyro_fsr = *(uint16_t*)&cbdata[3];
+		.message_handler = bluetera_uplink_message_handler
+	};
 
-				// TODO validate those values, currently if they are not valid
-				// bltr_imu_set_fsr will ignore them but the GATT table will show
-				// the new invalid values
-
-				bltr_imu_set_fsr(acc_fsr, gyro_fsr);
-			}
-			break;
-	}
+	return bltr_msg_init(&context); 
 }

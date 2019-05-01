@@ -19,8 +19,11 @@
             "includePath": [
 				"${workspaceFolder}/application",
 				"${workspaceFolder}/application/config",
+				"${workspaceFolder}/application/messages",
 				"${workspaceFolder}/application/modules/imu",
 				"${workspaceFolder}/application/modules/boards",
+				"${workspaceFolder}/application/services/bus",
+				"${workspaceFolder}/application/utilities",
 				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/components",
 				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/components/libraries/pwm",
 				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/components/libraries/log",
@@ -79,7 +82,8 @@
 				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/integration/nrfx",
 				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/integration/nrfx/legacy",
 				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/external/fprintf",
-				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/external/segger_rtt"
+				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/external/segger_rtt",
+				"${env.NRF_SDK_ROOTS}/nRF5_SDK_15.2.0_9412b96/external/nano-pb"
 			],
 			"defines": [
 				"BLE_STACK_SUPPORT_REQD",

@@ -22,7 +22,7 @@
 	SOFTWARE.
 */
 
-#include "icm_driver.h"
+#include "imu_manager.h"
 
 #include <app_timer.h>
 #include <nrfx_spim.h>
@@ -35,6 +35,7 @@
 
 #include "bluetera_boards.h"
 #include "utils.h"
+#include "bluetera_err.h"
 #include "bltr_invn_wrapper.h"
 
 static nrfx_spim_t _spi = NRFX_SPIM_INSTANCE(ICM_SPI_INSTANCE);
@@ -95,40 +96,56 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 	nrfx_gpiote_in_init(ICM_INTERRUPT_PIN, &icm_int1, _on_pin_event_handler);
 }
 
-void bltr_imu_start(uint32_t period)
+ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message)
 {
-	bltr_invn_start(period);
+	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
+		return BLTR_SUCCESS;
+
+	ret_code_t inner_err;
+	ret_code_t err = BLTR_SUCCESS;
+	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
+	switch(cmd->which_payload)
+	{		
+		case BLUETERA_IMU_COMMAND_START_TAG:
+			{
+				bltr_imu_config_t config = 
+				{
+					.data_types = cmd->payload.start.data_types,
+					.odr = cmd->payload.start.odr,
+					.acc_fsr = cmd->payload.start.acc_fsr,
+					.gyro_fsr = cmd->payload.start.gyro_fsr
+				};
+
+				err = bltr_imu_start(&config);
+			}
+
+			break;
+
+		case BLUETERA_IMU_COMMAND_STOP_TAG:
+			err = bltr_imu_stop();						
+			break;
+
+		default:
+			err = BLTR_IMU_ERROR_INVALID_COMMAND;
+			break;
+	}
+
+	return err;
 }
 
-void bltr_imu_stop()
+ret_code_t bltr_imu_start(const bltr_imu_config_t* config)
 {
-	bltr_invn_stop();
+	return bltr_invn_start(config);
 }
 
-void bltr_imu_set_mode(bltr_imu_mode_t mode)
-{	
-	bltr_invn_set_mode(mode);
+ret_code_t bltr_imu_stop()
+{
+	return bltr_invn_stop();
 }
 
-
-void bltr_imu_set_freq_divider(uint8_t div)
+void bltr_imu_poll()
 {
-	bltr_invn_set_freq_divider(div);
-}
-
-void bltr_imu_update()
-{
-	bltr_invn_update();
-}
-
-void bltr_imu_set_fsr(uint16_t acc, uint16_t gyro)
-{
-	bltr_invn_set_fsr(acc, gyro);
-}
-
-void bltr_imu_get_fsr(uint16_t* acc, uint16_t* gyro)
-{
-	bltr_invn_get_fsr(acc, gyro);
+	bltr_invn_poll();
 }
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)

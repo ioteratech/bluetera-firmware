@@ -27,7 +27,53 @@
  
 // Throughout this file, logging levels are: 0 - Off, 1 - Error, 2 - Warning, 3 - Info, 4 - Debug
 
-// IMU driver
+/* Bluetera UART service */
+#ifndef BLE_BUS_ENABLED
+#define BLE_BUS_ENABLED 0
+#endif
+
+#ifndef BLE_BUS_CONFIG_LOG_ENABLED
+#define BLE_BUS_CONFIG_LOG_ENABLED 0
+#endif
+
+#ifndef BLE_BUS_CONFIG_LOG_LEVEL
+#define BLE_BUS_CONFIG_LOG_LEVEL 3
+#endif
+
+#ifndef BLE_BUS_CONFIG_INFO_COLOR
+#define BLE_BUS_CONFIG_INFO_COLOR 0
+#endif
+
+#ifndef BLE_BUS_CONFIG_DEBUG_COLOR
+#define BLE_BUS_CONFIG_DEBUG_COLOR 0
+#endif
+
+#ifndef BLE_BUS_BLE_OBSERVER_PRIO
+#define BLE_BUS_BLE_OBSERVER_PRIO 2
+#endif
+
+/* Bluetera messages */
+#ifndef BLTR_MSG_CONFIG_LOG_ENABLED
+#define BLTR_MSG_CONFIG_LOG_ENABLED 1
+#endif
+
+#ifndef BLTR_MSG_CONFIG_LOG_LEVEL
+#define BLTR_MSG_CONFIG_LOG_LEVEL 3
+#endif
+
+#ifndef BLTR_MSG_CONFIG_INFO_COLOR
+#define BLTR_MSG_CONFIG_INFO_COLOR 0
+#endif
+
+#ifndef BLTR_MSG_CONFIG_DEBUG_COLOR
+#define BLTR_MSG_CONFIG_DEBUG_COLOR 0
+#endif
+
+#ifndef BLTR_MSG_BLE_OBSERVER_PRIO
+#define BLTR_MSG_BLE_OBSERVER_PRIO 2
+#endif
+
+/* IMU driver */
 #ifndef BLTR_IMU_ENABLED
 #define BLTR_IMU_ENABLED 1
 #endif

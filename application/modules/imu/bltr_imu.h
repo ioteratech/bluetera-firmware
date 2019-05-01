@@ -54,13 +54,20 @@ typedef struct
 	};
 } bltr_imu_sensor_data_t;
 
+// TODO(tomer) TEMPORARY! REMOVE!
 typedef enum
 {
-	BLTR_IMU_MODE_UNINITIALIZED,
-	BLTR_IMU_MODE_DMP,
-	BLTR_IMU_MODE_DIRECT
-} bltr_imu_mode_t;
+	BLTR_IMU_DATA_TYPE_QUATERNION = 0x01,
+	BLTR_IMU_DATA_TYPE_ACCELEROMETER = 0x02,
+	BLTR_IMU_DATA_TYPE_RAW = 0x04
+} bltr_imu_data_type_t;
 
+typedef struct {
+	uint32_t data_types;
+	uint32_t odr;
+	uint32_t acc_fsr;
+	uint32_t gyro_fsr;
+} bltr_imu_config_t;
 
 typedef void(*bltr_imu_data_handler_t)(const bltr_imu_sensor_data_t* data);
 
