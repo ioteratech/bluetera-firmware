@@ -170,7 +170,7 @@ INC_FOLDERS += \
   $(APP_DIR)/utilities \
   $(APP_DIR)/services/bus \
   $(APP_DIR)/messages \
-  $(APP_DIR)/modules/boards \
+  $(APP_DIR)/boards \
   $(APP_DIR)/modules/imu \
   $(INC_INVENSENSE)
   #$(EXTERNAL_DIR)/invn

@@ -627,7 +627,7 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 	switch(msg->which_payload)
 	{
 		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
-			err = bltr_msg_send_lecho(msg->payload.echo.value);
+			err = bltr_msg_send_echo(msg->payload.echo.value);
 			break;
 
 		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
