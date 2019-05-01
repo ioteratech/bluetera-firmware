@@ -2,7 +2,6 @@
 #define BLTR_INVN_WRAPPER_H_
 
 #include "bltr_imu.h"
-#include "bluetera_err.h"
 
 typedef struct
 {
@@ -18,9 +17,9 @@ typedef struct
 	void* spi;
 } bltr_invn_init_t;
 
-ret_code_t bltr_invn_init(const bltr_invn_init_t* init);
-ret_code_t bltr_invn_start(const bltr_imu_config_t* config);
-ret_code_t bltr_invn_stop();
+uint32_t bltr_invn_init(const bltr_invn_init_t* init);
+uint32_t bltr_invn_start(const bltr_imu_config_t* config);
+uint32_t bltr_invn_stop();
 
 void bltr_invn_poll();
 void bltr_invn_irq_handler();

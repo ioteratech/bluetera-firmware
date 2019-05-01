@@ -5,10 +5,6 @@
 extern "C" {
 #endif
 
-#ifndef EXCLUDE_BLUETERA_HEADERS
-	#include <app_error.h>
-#endif
-
 #define BLTR_ERROR_BASE_NUM				(0xF000)
 
 #define BLTR_MSG_ERR_BASE				(BLTR_ERROR_BASE_NUM + 0x100)

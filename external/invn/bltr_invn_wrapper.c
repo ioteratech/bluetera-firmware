@@ -4,6 +4,9 @@
 #include <Invn/Devices/Drivers/Icm20649/Icm20649.h>
 #include <stdbool.h>
 
+#define EXCLUDE_BLUETERA_HEADERS
+#include "bluetera_err.h"
+
 #define ICM_REG_REG_BANK_SEL       		0x7F
 
 // bank 0
@@ -83,7 +86,7 @@ static bltr_imu_mode_t _device_mode;
 static bltr_imu_config_t _current_config;
 
 void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr);
-static ret_code_t _init_dmp();
+static void _init_dmp();
 static void _set_fsr_imu_mode_direct();
 static void _uninit_dmp();
 static void _inv_sensor_listener_event_cb(const inv_sensor_event_t * event, void * context);
@@ -93,7 +96,7 @@ static uint16_t _acc_fsr_enum_to_num(AccFullscaleRange fsr);
 static AccFullscaleRange _num_to_acc_fsr_enum(uint16_t fsr);
 
 // methods
-ret_code_t bltr_invn_init(const bltr_invn_init_t* init)
+uint32_t bltr_invn_init(const bltr_invn_init_t* init)
 {
 	_freq_div = 0;
 	_device_mode = IMU_MODE_STOPPED;
@@ -114,9 +117,11 @@ ret_code_t bltr_invn_init(const bltr_invn_init_t* init)
 
 	// TODO(tomer) verify that "init" contains all what we need?
 	// TODO(tomer) verify that IMU is physically connected, and return an error based on that
+
+	return 0;
 }
 
-ret_code_t bltr_invn_start(const bltr_imu_config_t* config)
+uint32_t bltr_invn_start(const bltr_imu_config_t* config)
 {
 	if(_device_mode == IMU_MODE_DMP || _device_mode == IMU_MODE_DIRECT)
 		return BLTR_SUCCESS;
@@ -167,7 +172,7 @@ ret_code_t bltr_invn_start(const bltr_imu_config_t* config)
 	return BLTR_SUCCESS;
 }
 
-ret_code_t bltr_invn_stop()
+uint32_t bltr_invn_stop()
 {
 	switch(_device_mode)
 	{
@@ -312,7 +317,7 @@ void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr)
 }
 
 // Make sure to disable ICM interrupts before calling this method
-static ret_code_t _init_dmp()
+static void _init_dmp()
 {
 	inv_serif_hal_t serif_spi_instance =
 	{
