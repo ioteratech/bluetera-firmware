@@ -101,12 +101,12 @@ ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 	return err;
 }
 
-ret_code_t bltr_msg_send_echo(const uint8_t data[8])
+ret_code_t bltr_msg_send_echo(uint32_t value)
 {
 	// build message
 	bluetera_downlink_message_t message;
 	message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ECHO_TAG;
-	memcpy(message.payload.echo.value, data, sizeof(message.payload.echo.value));
+	message.payload.echo.value = value;
 	message.payload.echo.has_value = true;
 
 	// try sending message

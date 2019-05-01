@@ -36,7 +36,7 @@ typedef struct
 
 ret_code_t bltr_msg_init(const bltr_msg_init_t* init);
 ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data);
-ret_code_t bltr_msg_send_echo(const uint8_t data[8]);
+ret_code_t bltr_msg_send_echo(uint32_t value);
 ret_code_t bltr_msg_send_error(bluetera_bluetera_modules_type_t module, uint32_t code);
 
 

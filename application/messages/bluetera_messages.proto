@@ -16,7 +16,7 @@ enum BlueteraModulesType
 
 message EchoPayload
 {
-	 string value = 1;
+	 uint32 value = 1;
 }
 
 message Error
