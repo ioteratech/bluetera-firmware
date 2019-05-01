@@ -187,6 +187,7 @@ int main()
 	conn_params_init();
 	peer_manager_init();	
 
+	// Can be used to debug realtime stuff with an oscilloscope by changing the GPIO state from points of interest.
 	// nrfx_gpiote_out_config_t debug_pin = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(false);
 	// nrfx_gpiote_out_init(DEBUG_GPIO_TIMING, &debug_pin);
 
@@ -626,7 +627,7 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 	switch(msg->which_payload)
 	{
 		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
-			err = bltr_msg_send_echo(msg->payload.echo.value);
+			err = bltr_msg_send_lecho(msg->payload.echo.value);
 			break;
 
 		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
