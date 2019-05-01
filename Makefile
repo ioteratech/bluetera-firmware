@@ -292,6 +292,7 @@ INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, 
 
 # Build Invensense library. Requires GNU tools
 build_invn_lib:
+	-$(MK) "$(OUTPUT_DIRECTORY)"
 	-$(MK) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
 	$(CC) -c $(SRC_INVENSENSE) -I$(EXTERNAL_DIR) -I$(APP_DIR)/modules/imu -I$(APP_DIR)/utilities $(CFLAGS)
 	$(MV) *.o "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
