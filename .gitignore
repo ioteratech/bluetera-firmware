@@ -2,3 +2,4 @@ _build/
 _hex/
 .vscode/ipch
 application/messages/*.pb
+application/commit_hash.h

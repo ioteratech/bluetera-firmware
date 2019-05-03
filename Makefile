@@ -257,7 +257,7 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: bluetera
+default: gen_commit_hash bluetera
 
 # Print all targets that can be built
 help:
@@ -304,5 +304,11 @@ erase:
 
 SDK_CONFIG_FILE := $(APP_DIR)/config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
+
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
+
+.PHONY: get_commit_hash
+
+gen_commit_hash:
+	./scripts/gen_commit_hash.sh
