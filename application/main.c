@@ -472,7 +472,11 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 	switch (p_ble_evt->header.evt_id)
 	{
 		case BLE_GAP_EVT_CONNECTED:
-			NRF_LOG_INFO("connected");
+			NRF_LOG_INFO("connected: conn_interval = %d x 1.25ms, slave_latency = %d, sup_timeout = %d x 10ms", 
+				p_ble_evt->evt.gap_evt.params.connected.conn_params.max_conn_interval,
+				p_ble_evt->evt.gap_evt.params.connected.conn_params.slave_latency,
+				p_ble_evt->evt.gap_evt.params.connected.conn_params.conn_sup_timeout);
+
 			_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 			err_code = nrf_ble_qwr_conn_handle_assign(&_qwr, _conn_handle);
 			APP_ERROR_CHECK(err_code);
@@ -507,6 +511,12 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 			NRF_LOG_DEBUG("GATT server timeout");
 			err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
 			APP_ERROR_CHECK(err_code);
+			break;
+		case BLE_GAP_EVT_CONN_PARAM_UPDATE:
+			NRF_LOG_INFO("connection parameters updated: conn_interval = %d x 1.25ms, slave_latency = %d, sup_timeout = %d x 10ms", 
+				p_ble_evt->evt.gap_evt.params.conn_param_update.conn_params.max_conn_interval,
+				p_ble_evt->evt.gap_evt.params.conn_param_update.conn_params.slave_latency,
+				p_ble_evt->evt.gap_evt.params.conn_param_update.conn_params.conn_sup_timeout);			
 			break;
 		default:
 			// No implementation needed.
