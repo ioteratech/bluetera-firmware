@@ -254,8 +254,13 @@ LIB_FILES += -lc -lnosys -lm
 
 .PHONY: default help
 
-# Default target - first one defined
+# Default target
+# We only build invensense library if the library's sources are present
+ifneq ("$(wildcard $(EXTERNAL_DIR)/invn/IDDVersion.h)","")
 default: gen_commit_hash build_invn_lib bluetera
+else
+default: gen_commit_hash bluetera
+endif
 
 # Print all targets that can be built
 help:
