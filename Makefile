@@ -2,9 +2,13 @@
 PROJECT_NAME     		:= bluetera
 TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
+INVN_LIB_NAME 			:= imu_driver
+
+# Commands
+MV := mv -f
 
 # Directories
-SDK_ROOT := $(NRF_SDK_ROOTS)/nRF5_SDK_15.2.0_9412b96
+SDK_ROOT := $(NRF_SDK_ROOT)/nRF5_SDK_15.2.0_9412b96
 PROJ_DIR := .
 APP_DIR := $(PROJ_DIR)/application
 EXTERNAL_DIR := $(PROJ_DIR)/external
@@ -102,7 +106,7 @@ SRC_FILES += \
   $(APP_DIR)/services/bus/ble_bus.c \
   $(APP_DIR)/modules/imu/imu_manager.c \
   $(APP_DIR)/modules/imu/imu_service.c \
-  $(APP_DIR)/main.c
+  $(APP_DIR)/main.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -177,7 +181,7 @@ INC_FOLDERS += \
   
 
 # Libraries common to all targets
-LIB_FILES += $(EXTERNAL_DIR)/invn/imu_driver.a \
+LIB_FILES += $(EXTERNAL_DIR)/invn/$(INVN_LIB_NAME).a \
 
 # Optimization flags
 OPT = -O3 -g3
@@ -199,15 +203,15 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=6
 CFLAGS += -DS132
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
-#CFLAGS += -DDEBUG
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-#CFLAGS += -Wall -Werror
-#CFLAGS += -Wall
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
+#CFLAGS += -DDEBUG
+#CFLAGS += -Wall -Werror
+#CFLAGS += -Wall
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
@@ -250,16 +254,22 @@ LIB_FILES += -lc -lnosys -lm
 
 .PHONY: default help
 
-# Default target - first one defined
-default: bluetera
+# Default target
+# We only build invensense library if the library's sources are present
+ifneq ("$(wildcard $(EXTERNAL_DIR)/invn/IDDVersion.h)","")
+default: gen_commit_hash build_invn_lib bluetera
+else
+default: gen_commit_hash bluetera
+endif
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		bluetera
-	@echo		flash_softdevice
-	@echo		sdk_config - starting external tool for editing sdk_config.h
-	@echo		flash      - flashing binary
+	@echo		bluetera (default)
+	@echo		flash_softdevice - flash soft device
+	@echo		flash - flashing binary
+	@echo		build_invn_lib - build invensense library
+	@echo 		gen_commit_hash - re-generate commit hash file
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
@@ -282,10 +292,27 @@ flash_softdevice:
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_6.1.0_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
+INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, $(basename $(notdir $(SRC_INVENSENSE)))))
+
+# Build Invensense library. Requires GNU tools
+build_invn_lib:
+	-$(MK) "$(OUTPUT_DIRECTORY)"
+	-$(MK) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
+	$(CC) -c $(SRC_INVENSENSE) -I$(EXTERNAL_DIR) -I$(APP_DIR)/modules/imu -I$(APP_DIR)/utilities $(CFLAGS)
+	$(MV) *.o "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
+	"$(GNU_INSTALL_ROOT)$(GNU_PREFIX)-ar" rcs "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a" $(INVN_LIB_OBJ_LOC)
+	$(MV) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a" "$(EXTERNAL_DIR)/invn"
+
 erase:
 	nrfjprog -f nrf52 --eraseall
 
 SDK_CONFIG_FILE := $(APP_DIR)/config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
+
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
+
+.PHONY: get_commit_hash
+
+gen_commit_hash:
+	./scripts/gen_commit_hash.sh

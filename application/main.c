@@ -403,7 +403,8 @@ static void services_init()
 	// initialize Device Information service
 	ble_dis_init_t dis_init = { 0 };
 	snprintf(hw_version_str, sizeof(hw_version_str), "%d.%d", MSB_16(HARDWARE_VERSION), LSB_16(HARDWARE_VERSION));
-	snprintf(fw_version_str, sizeof(fw_version_str), "%d.%d", MSB_16(FIRMWARE_VERSION), LSB_16(FIRMWARE_VERSION));
+	snprintf(fw_version_str, sizeof(fw_version_str), "%d.%d.%s", MSB_16(FIRMWARE_VERSION), LSB_16(FIRMWARE_VERSION), SCM_COMMIT_HASH);
+	//sprintf(device_id_str, "%llu", *((uint64_t*)NRF_FICR->DEVICEID));
 
     ble_srv_ascii_to_utf8(&dis_init.manufact_name_str, (char*)MANUFACTURER_NAME);
 	ble_srv_ascii_to_utf8(&dis_init.hw_rev_str, hw_version_str);
@@ -472,7 +473,11 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 	switch (p_ble_evt->header.evt_id)
 	{
 		case BLE_GAP_EVT_CONNECTED:
-			NRF_LOG_INFO("connected");
+			NRF_LOG_INFO("connected: conn_interval = %d x 1.25ms, slave_latency = %d, sup_timeout = %d x 10ms", 
+				p_ble_evt->evt.gap_evt.params.connected.conn_params.max_conn_interval,
+				p_ble_evt->evt.gap_evt.params.connected.conn_params.slave_latency,
+				p_ble_evt->evt.gap_evt.params.connected.conn_params.conn_sup_timeout);
+
 			_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 			err_code = nrf_ble_qwr_conn_handle_assign(&_qwr, _conn_handle);
 			APP_ERROR_CHECK(err_code);
@@ -507,6 +512,12 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 			NRF_LOG_DEBUG("GATT server timeout");
 			err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
 			APP_ERROR_CHECK(err_code);
+			break;
+		case BLE_GAP_EVT_CONN_PARAM_UPDATE:
+			NRF_LOG_INFO("connection parameters updated: conn_interval = %d x 1.25ms, slave_latency = %d, sup_timeout = %d x 10ms", 
+				p_ble_evt->evt.gap_evt.params.conn_param_update.conn_params.max_conn_interval,
+				p_ble_evt->evt.gap_evt.params.conn_param_update.conn_params.slave_latency,
+				p_ble_evt->evt.gap_evt.params.conn_param_update.conn_params.conn_sup_timeout);			
 			break;
 		default:
 			// No implementation needed.
@@ -587,8 +598,6 @@ static void advertising_init()
 	init.advdata.name_type = BLE_ADVDATA_FULL_NAME;
 	init.advdata.include_appearance = false;
 	init.advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
-	//init.advdata.uuids_complete.uuid_cnt = sizeof(_adv_uuids) / sizeof(_adv_uuids[0]);
-	//init.advdata.uuids_complete.p_uuids  = _adv_uuids;
 
 	// configure advertising
 	init.config.ble_adv_fast_enabled  = true;
@@ -613,7 +622,6 @@ static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 {
 	// p_event_data should be always null here and event_size is always 0
-
 	bltr_imu_stop();
 }
 

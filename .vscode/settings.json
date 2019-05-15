@@ -26,7 +26,8 @@
 		"nrf_log_ctrl.h": "c",
 		"bltr_invn_wrapper.h": "c",
 		"sensortypes.h": "c",
-		"bltr_imu.h": "c"
+		"bltr_imu.h": "c",
+		"bluetera_constants.h": "c"
 	},
 	"files.exclude": {
 		"**/.git": true,

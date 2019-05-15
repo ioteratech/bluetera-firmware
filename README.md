@@ -1,85 +1,115 @@
+
+<img src=docs/images/iotera_logo.png width="10%" height="10%"></br>
 # Bluetera Firmware
 Firmware for the BLE-enabled Bluetera module.</br>
-Visit our website: https://ioteratech.com
 
+<img src=docs/images/bluetera_module_front.png width="20%" height="20%" hspace="20"/> 
+<img src=docs/images/bluetera_module_back.png width="20%" height="20%" hspace="20"/>
+
+Visit our website: https://ioteratech.com
 ## Getting Started
 
-Bluetera is an open source IoT platform for the development of smart and connected products. The Bluetera platform comprises of:
-* A tiny hardware-based sensor hub to collect and analyze data
-* Open-source firmware (this repository)
-* An SDK for major operating systems with sample code
+Bluetera is an open source IoT platform for the development of smart and connected products. The platform includes:
+* Bluetera Hardware module - repository [here]()
+* Bluetera Firmware (this repository)
+* Blutera SDK(s) - repositories [here](https://github.com/ioteratech/)
 
-This walkthrough provides a high-level guide for using the Bluetera platform. The repositories, referenced below, provide the necessary code, documentation and examples to develop your own projects.
+This guide provides a detailed description on how to build and debug the Bluetera firmware. If you just want to run the sample code without modifying the firmware - checkout the complementary [SDK repositories](https://github.com/ioteratech/).
+
+
+## Building the project
+### Prerequisites
+* Windows 7 and later (should work, but not tested, on Linux nor Mac).
+* Nordic Semiconductor's nRF5 SDK, version 15.2.0 - download [here](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK/Download#infotabs)
+* GNU Tools ARM Embedded<sup id="a1">[1](#f1)</sup>, version '6 2017-q2-update' or higher - download [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads).
+  
+if might also want to install:
+* Visual Studio Code IDE - download [here](https://code.visualstudio.com)
+* Invensense Embedded Motion Driver<sup id="a2">[2](#f1)</sup> (only if you intend to modify the Bluetera IMU driver) - download [here](https://www.invensense.com)
 
 ### Installing
+You can more-or-less follow the instructions of [this blog](https://devzone.nordicsemi.com/tutorials/b/getting-started/posts/development-with-gcc-and-eclipse), skipping Eclipse-related stuff (that is, unless you want to use Eclipse as your IDE :-)):
 
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
+* Unzip nRF5-SDK to some folder, preferably with not spaces in the path name. 
+* Install the ARM compiler
+* Go to the SDK folder, and make sure the build script *<NRF_SDK_ROOT>\components\toolchain\gcc\Makefile.windows* points to the correct version of the ARM compiler. It should look something like:
 ```
-Give the example
-```
-
-And repeat
-
-```
-until finished
+GNU_INSTALL_ROOT := C:/Program Files (x86)/GNU Tools ARM Embedded/6 2017-q2-update/bin/
+GNU_VERSION := 6.3.1
+GNU_PREFIX := arm-none-eabi
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
+#### Test your installation
+If all went well, you should be able to build Nordic's sample project:
+* Open a command-line under *<NRF_SDK_ROOT>\examples\peripheral\blinky\<BOARD>\s132\armgcc* <br/>(*BOARD* is *pca10040* for nRF52832-DK, and *pca10056* for nRF52840-DK).
+* Run *make*
+* Check if the firmware image file was created - *_build\nrf52832_xxaa.hex*
 
-## Running the tests
+### Build
+* Set an environment variable *NRF_SDK_ROOT* to the nRF-SDK top folder (e.g. *C:\dev\nordic\sdk\nRF5_SDK_15.2.0_9412b96*).
+* Clone this repository, and open a command-line in the top folder
+* Run *make*
+* The generated firmware image is *_build\bluetera.hex*
 
-Explain how to run the automated tests for this system
+## Programming / Debugging the Device
+### Prerequisite
+* Bluetera module (either with or without battery)
+* Nordic Semiconductor's Developement Kits ([nRF52832-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52-DK) / [nRF52840-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52840-DK)). 
+* A Windows 10 machine, with the following software: 
+  * Segger J-Link software for Nordic - download [here](https://www.segger.com/downloads/jlink#J-LinkSoftwareAndDocumentationPack) 
+  * nRF command line tools - download [here](https://www.nordicsemi.com/Software-and-Tools/Development-Tools/nRF5-Command-Line-Tools/Download#infotabs)
+### Preperation
+  * Solder 4 wires to Bluetera SWD pads - VCC, GND, CLK and SIO, shown on the right side of the following image: 
+  
+  <img style="display: block; margin-left:auto;  margin-right:auto;"  src=docs/images/bluetera_module_front_signals.png width="60%" height="60%"/> 
 
-### Break down into end to end tests
+* Prepare the PCA10040 / PCA10056 board: 
+  *  Make sure the main power switch is off
+  *  In PCA10056, SW9 (nRF power source) should be on 'VDD', SW6 to 'DEFAULT'
+  *  Connect the GND_DETECT pin of header P20 to GND pin of header P1
+*  Connect the SWD wires to the board:
+   *  Bluetera GND to P1.GND pin
+   *  Bluetera VCC to P20.VTG pin
+   *  Bluetera CLK to P20.SWD_CLK pin
+   *  Bluetera SIO to P20.SWD_IO pin
+* If the Bluetera is without battery, you can also power it from the board, by shorting P20.VTG to P20.VDD_nRF pin.
 
-Explain what these tests test and why
+The Following images illustrate the connection without a battery: 
+     
+![](docs/images/bluetera_PRG_4_w300.jpg)
 
-```
-Give an example
-```
+### Programming:
+  * Connect the Development Board to a PC via USB.
+  * Turn it on, and wait until drivers are installed.
+  * If all works well, a new virtual drive named 'JLINK' will be added to your machine.
+  * Drag-and-Drop the firmware image file: *_build\bluetera.hex* to the JLink virtual drive, and wait for the programming to complete.
+      
+## First Usage (Windows Logger Demo)
+Iotera logger demo is a Windows open source app that illustrates the usage of the IMU module and data logging. The source code and app can be found in [this repository]()
+1. Prerequisite:
+ * Machine with windows operating system 
+ * Bluetera device with firmware that fits the Logger APIs
+ * BLE CSR Dongle and driver 
+ * Logger demo software 
+2. Run the demo, turn on your Bluetera, and click 'Start'
 
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+![Blutera Logger](docs/images/bluetera-logger.png)
 
 ## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
+* When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change
+* Your code should match the project's code style
+* Your code must build without errors nor warnings
+* Once ready, create a pull request
 
 ## Authors
-
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+* **Tomer Abramovich** - [Iotera Technologies](https://ioteratech.com/company/)
+* **Boaz Aizenshtark** - [Iotera Technologies](https://ioteratech.com/company/)
+* **Avi Rabinovich** - [Iotera Technologies](https://ioteratech.com/company/)
 
 ## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+## Notes
+<sup id="f1">1</sup> Nordic support other IDEs and toolchains. This repository was only built and tested using GCC. [↩](#a1)
 
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
-
+<sup id="f2">2</sup> InvenSense driver is not open-source. You can, however, request the sources from TDK. Bluetera firmware includes the Invensense driver as a pre-compiled library [↩](#a1)
