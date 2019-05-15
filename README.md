@@ -1,10 +1,10 @@
 
-<img src=images/iotera_logo.png width="10%" height="10%"></br>
+<img src=docs/images/iotera_logo.png width="10%" height="10%"></br>
 # Bluetera Firmware
 Firmware for the BLE-enabled Bluetera module.</br>
 
-<img src=images/bluetera_module_front.png width="20%" height="20%" hspace="20"/> 
-<img src=images/bluetera_module_back.png width="20%" height="20%" hspace="20"/>
+<img src=docs/images/bluetera_module_front.png width="20%" height="20%" hspace="20"/> 
+<img src=docs/images/bluetera_module_back.png width="20%" height="20%" hspace="20"/>
 
 Visit our website: https://ioteratech.com
 ## Getting Started
@@ -12,9 +12,9 @@ Visit our website: https://ioteratech.com
 Bluetera is an open source IoT platform for the development of smart and connected products. The platform includes:
 * Bluetera Hardware module - repository [here]()
 * Bluetera Firmware (this repository)
-* Blutera SDK - repository [here]()
+* Blutera SDK(s) - repositories [here](https://github.com/ioteratech/)
 
-This guide provides a detailed description on how to build and debug the Bluetera firmware. If you just want to run the sample code without modifying the firmware - checkout the complementary [SDK repository]().
+This guide provides a detailed description on how to build and debug the Bluetera firmware. If you just want to run the sample code without modifying the firmware - checkout the complementary [SDK repositories](https://github.com/ioteratech/).
 
 
 ## Building the project
@@ -30,9 +30,9 @@ if might also want to install:
 ### Installing
 You can more-or-less follow the instructions of [this blog](https://devzone.nordicsemi.com/tutorials/b/getting-started/posts/development-with-gcc-and-eclipse), skipping Eclipse-related stuff (that is, unless you want to use Eclipse as your IDE :-)):
 
-* Unzip nRF5-SDK to some folder, preferebly with not spaces in the path name. 
+* Unzip nRF5-SDK to some folder, preferably with not spaces in the path name. 
 * Install the ARM compiler
-* Go to the SDK folder, and make sure the build script *<SDK_ROOT>\components\toolchain\gcc\Makefile.windows* points to the correct version of the ARM compiler. It should look something like:
+* Go to the SDK folder, and make sure the build script *<NRF_SDK_ROOT>\components\toolchain\gcc\Makefile.windows* points to the correct version of the ARM compiler. It should look something like:
 ```
 GNU_INSTALL_ROOT := C:/Program Files (x86)/GNU Tools ARM Embedded/6 2017-q2-update/bin/
 GNU_VERSION := 6.3.1
@@ -41,12 +41,12 @@ GNU_PREFIX := arm-none-eabi
 
 #### Test your installation
 If all went well, you should be able to build Nordic's sample project:
-* Open a command-line under *<SDK_ROOT>\examples\peripheral\blinky\<BOARD>\s132\armgcc* <br/>(*BOARD* is *pca10040* for nRF52832-DK, and *pca10056* for nRF52840-DK).
+* Open a command-line under *<NRF_SDK_ROOT>\examples\peripheral\blinky\<BOARD>\s132\armgcc* <br/>(*BOARD* is *pca10040* for nRF52832-DK, and *pca10056* for nRF52840-DK).
 * Run *make*
 * Check if the firmware image file was created - *_build\nrf52832_xxaa.hex*
 
 ### Build
-* Set an environment variable *SDK_ROOT* to the nRF-SDK top folder (e.g. *C:\dev\nordic\sdk\nRF5_SDK_15.2.0_9412b96*).
+* Set an environment variable *NRF_SDK_ROOT* to the nRF-SDK top folder (e.g. *C:\dev\nordic\sdk\nRF5_SDK_15.2.0_9412b96*).
 * Clone this repository, and open a command-line in the top folder
 * Run *make*
 * The generated firmware image is *_build\bluetera.hex*
@@ -61,7 +61,7 @@ If all went well, you should be able to build Nordic's sample project:
 ### Preperation
   * Solder 4 wires to Bluetera SWD pads - VCC, GND, CLK and SIO, shown on the right side of the following image: 
   
-  <img style="display: block; margin-left:auto;  margin-right:auto;"  src=images/bluetera_module_front_signals.png width="60%" height="60%"/> 
+  <img style="display: block; margin-left:auto;  margin-right:auto;"  src=docs/images/bluetera_module_front_signals.png width="60%" height="60%"/> 
 
 * Prepare the PCA10040 / PCA10056 board: 
   *  Make sure the main power switch is off
@@ -76,7 +76,7 @@ If all went well, you should be able to build Nordic's sample project:
 
 The Following images illustrate the connection without a battery: 
      
-![](images/bluetera_PRG_4_w300.jpg)
+![](docs/images/bluetera_PRG_4_w300.jpg)
 
 ### Programming:
   * Connect the Development Board to a PC via USB.
@@ -91,32 +91,23 @@ Iotera logger demo is a Windows open source app that illustrates the usage of th
  * Bluetera device with firmware that fits the Logger APIs
  * BLE CSR Dongle and driver 
  * Logger demo software 
-2. Usage:
-* Run ../ioteraDemo.exe
-* The followinbg window should open 
+2. Run the demo, turn on your Bluetera, and click 'Start'
 
-![Blutera Logger](images/logger-1.jpg)
+![Blutera Logger](docs/images/bluetera-logger.png)
 
-* Click Logging and enable. You can also set the log path 
+## Contributing
+* When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change
+* Your code should match the project's code style
+* Your code must build without errors nor warnings
+* Once ready, create a pull request
 
-![Blutera Logger](images/logger-2.jpg)
-
-* Click start (1). The app should pair to the first BT module it detects (2) and outline its MAC number 
-
-![Blutera Logger](images/logger-3.jpg)
-
-* You can stop the logging and also reset the cube by clicking the corresponding button at menu (1)
-* The data section (3) presents Acceleration data (3 axis); Quaternion data and Euler angles - all in realtime (default data sampling is 50hz)
-* The graphical section (4) presents a rotating cube (based on quaternion)
-* The logger records the data into a CSV file which you can export and analyze
-* 
 ## Authors
-* **Tomer Abramovich** - [Tensor Technologies]()
-* **Boaz Aizenshtark** - [Tensor Technologies]()
-* **Avi Rabinovich** - [Tensor Technologies]()
+* **Tomer Abramovich** - [Iotera Technologies](https://ioteratech.com/company/)
+* **Boaz Aizenshtark** - [Iotera Technologies](https://ioteratech.com/company/)
+* **Avi Rabinovich** - [Iotera Technologies](https://ioteratech.com/company/)
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Notes
 <sup id="f1">1</sup> Nordic support other IDEs and toolchains. This repository was only built and tested using GCC. [↩](#a1)
