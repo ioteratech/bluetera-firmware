@@ -4,7 +4,7 @@ TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
 
 # Directories
-SDK_ROOT := $(NRF_SDK_ROOTS)/nRF5_SDK_15.2.0_9412b96
+SDK_ROOT := $(NRF_SDK_ROOT)/nRF5_SDK_15.2.0_9412b96
 PROJ_DIR := .
 APP_DIR := $(PROJ_DIR)/application
 EXTERNAL_DIR := $(PROJ_DIR)/external
