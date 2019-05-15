@@ -75,14 +75,6 @@ static volatile bool _irq_from_device = false;
 static inv_sensor_listener_t _sensor_listener = { 0 };
 static uint8_t _freq_div;
 
-typedef enum
-{
-	IMU_MODE_STOPPED,
-	IMU_MODE_DMP,
-	IMU_MODE_DIRECT
-} bltr_imu_mode_t;
-
-static bltr_imu_mode_t _device_mode;
 static bltr_imu_config_t _current_config;
 
 void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr);
@@ -99,8 +91,6 @@ static AccFullscaleRange _num_to_acc_fsr_enum(uint16_t fsr);
 uint32_t bltr_invn_init(const bltr_invn_init_t* init)
 {
 	_freq_div = 0;
-	_device_mode = IMU_MODE_STOPPED;
-
 	_imu_data_handler = init->imu_data_handler;
 	_imu_irq_data_handler = init->imu_irq_data_handler;
 	_read_reg = init->read_reg;
@@ -115,6 +105,8 @@ uint32_t bltr_invn_init(const bltr_invn_init_t* init)
 	_sensor_listener.event_cb = _inv_sensor_listener_event_cb;
 	_sensor_listener.context = _spi;
 
+	_init_dmp();
+
 	// TODO(tomer) verify that "init" contains all what we need?
 	// TODO(tomer) verify that IMU is physically connected, and return an error based on that
 
@@ -123,9 +115,6 @@ uint32_t bltr_invn_init(const bltr_invn_init_t* init)
 
 uint32_t bltr_invn_start(const bltr_imu_config_t* config)
 {
-	if(_device_mode == IMU_MODE_DMP || _device_mode == IMU_MODE_DIRECT)
-		return BLTR_SUCCESS;
-
 	// verify fsr's
 
 	AccFullscaleRange real_acc_fsr = _num_to_acc_fsr_enum(config->acc_fsr);
@@ -148,8 +137,6 @@ uint32_t bltr_invn_start(const bltr_imu_config_t* config)
 
 	// TODO(tomer) implement the rest of the data types, and select the correct operation mode (dmp or direct) according to different combinations and rates
 
-	_init_dmp();
-
 	// NOTICE INV_ICM20649_SENSOR_RAW_ACCELEROMETER sets for both raw and regular
 	inv_device_set_sensor_config(_device, INV_ICM20649_SENSOR_RAW_ACCELEROMETER, INV_DEVICE_ICM20649_CONFIG_FSR, &_current_config.acc_fsr, 0);
 
@@ -167,24 +154,15 @@ uint32_t bltr_invn_start(const bltr_imu_config_t* config)
 		inv_device_start_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
 	}
 
-	_device_mode = IMU_MODE_DMP;
-
 	return BLTR_SUCCESS;
 }
 
 uint32_t bltr_invn_stop()
 {
-	switch(_device_mode)
+	if(_current_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION || _current_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
 	{
-		case IMU_MODE_DMP:
-			_uninit_dmp();
-			_device_mode = IMU_MODE_STOPPED;
-			return BLTR_SUCCESS;
-		case IMU_MODE_DIRECT:
-			// TODO(tomer) implement
-			return BLTR_SUCCESS;
-		case IMU_MODE_STOPPED:
-			return BLTR_SUCCESS;
+		inv_device_stop_sensor(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR);
+		inv_device_stop_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
 	}
 
 	return BLTR_IMU_ERROR_CRITICAL;
@@ -192,51 +170,44 @@ uint32_t bltr_invn_stop()
 
 void bltr_invn_poll()
 {
-	if (_device_mode == IMU_MODE_DMP && _irq_from_device)
-	{
-		_irq_from_device = false;
-		inv_device_poll(_device);
-	}
-
+	_irq_from_device = false;
+	inv_device_poll(_device);
+	
 	// no need to pull in direct mode, because data reading takes place in interrupt, and then transfered to the application queue,
 	// which is then deqeued and exceuted from the main thead
 }
 
 void bltr_invn_irq_handler()
 {
-	if(_device_mode == IMU_MODE_DMP)
-	{
-		_irq_from_device = true;
-		return;
-	}
+	_irq_from_device = true;
 
-	uint64_t timestamp = inv_icm20649_get_time_us();
+	// uint64_t timestamp = inv_icm20649_get_time_us();
 	
-	// read data
-	uint8_t buf[12];
-	_enter_critical_section();	
-	_read_reg(_spi, 0x1A, buf, 1);
+	// // read data
+	// uint8_t buf[12];
+	// _enter_critical_section();	
+	// _read_reg(_spi, 0x1A, buf, 1);
 
-	if(buf[0] & 0x01)	// RAW_DATA_0_RDY_INT
-		_read_reg(_spi, ICM_REG_ACCEL_XOUT_H, buf, 12);	
+	// if(buf[0] & 0x01)	// RAW_DATA_0_RDY_INT
+	// 	_read_reg(_spi, ICM_REG_ACCEL_XOUT_H, buf, 12);	
 
-	_leave_critical_section();
+	// _leave_critical_section();
 
-	// callback
-	if(buf[0] & 0x01)
-	{		
-		bltr_imu_sensor_data_t sensor_data;
-		sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_RAW;
-		sensor_data.timestamp = timestamp;		
-		sensor_data.raw.acceleration[0] = (buf[0] << 8) | buf[1];
-		sensor_data.raw.acceleration[1] = (buf[2] << 8) | buf[3];
-		sensor_data.raw.acceleration[2] = (buf[4] << 8) | buf[5];
-		sensor_data.raw.gyroscope[0] = (buf[6] << 8) | buf[7];
-		sensor_data.raw.gyroscope[1] = (buf[8] << 8) | buf[9];
-		sensor_data.raw.gyroscope[2] = (buf[10] << 8) | buf[11];
+	// // callback
+	// if(buf[0] & 0x01)
+	// {		
+	// 	bltr_imu_sensor_data_t sensor_data;
+	// 	sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_RAW;
+	// 	sensor_data.timestamp = timestamp;		
+	// 	sensor_data.raw.acceleration[0] = (buf[0] << 8) | buf[1];
+	// 	sensor_data.raw.acceleration[1] = (buf[2] << 8) | buf[3];
+	// 	sensor_data.raw.acceleration[2] = (buf[4] << 8) | buf[5];
+	// 	sensor_data.raw.gyroscope[0] = (buf[6] << 8) | buf[7];
+	// 	sensor_data.raw.gyroscope[1] = (buf[8] << 8) | buf[9];
+	// 	sensor_data.raw.gyroscope[2] = (buf[10] << 8) | buf[11];
 
-		_imu_data_handler(&sensor_data);
-	}
+	// 	_imu_data_handler(&sensor_data);
+	// }
 }
 
 // static methods

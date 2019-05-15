@@ -57,22 +57,6 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 	APP_ERROR_CHECK_BOOL(init != NULL);
 	NRF_LOG_DEBUG("ICM20649: initializing");
 
-	// Initialize Invensense
-	_imu_data_handler = init->imu_data_handler;
-	bltr_invn_init_t invn_init = 
-	{
-		.imu_data_handler = init->imu_data_handler,
-		.read_reg = _read_reg,
-		.write_reg = _write_reg,
-		.delay_ms = _delay_ms,
-		.delay_us = _delay_us,
-		.get_timestamp_us = _get_timestamp_us,
-		.enter_critical_section = _enter_critical_section,
-		.leave_critical_section = _leave_critical_section,
-		.spi = &_spi
-	};
-	bltr_invn_init(&invn_init);
-
 	// Initialize SPI
 	nrfx_spim_config_t spi_cfg =
 	{
@@ -94,6 +78,22 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 	// Initialize interrupts
 	nrfx_gpiote_in_config_t icm_int1 = NRFX_GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
 	nrfx_gpiote_in_init(ICM_INTERRUPT_PIN, &icm_int1, _on_pin_event_handler);
+
+	// Initialize Invensense
+	_imu_data_handler = init->imu_data_handler;
+	bltr_invn_init_t invn_init = 
+	{
+		.imu_data_handler = init->imu_data_handler,
+		.read_reg = _read_reg,
+		.write_reg = _write_reg,
+		.delay_ms = _delay_ms,
+		.delay_us = _delay_us,
+		.get_timestamp_us = _get_timestamp_us,
+		.enter_critical_section = _enter_critical_section,
+		.leave_critical_section = _leave_critical_section,
+		.spi = &_spi
+	};
+	bltr_invn_init(&invn_init);
 }
 
 ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message)
