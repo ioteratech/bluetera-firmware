@@ -8,7 +8,7 @@ INVN_LIB_NAME 			:= imu_driver
 MV := mv -f
 
 # Directories
-SDK_ROOT := $(NRF_SDK_ROOTS)/nRF5_SDK_15.2.0_9412b96
+SDK_ROOT := $(NRF_SDK_ROOT)/nRF5_SDK_15.2.0_9412b96
 PROJ_DIR := .
 APP_DIR := $(PROJ_DIR)/application
 EXTERNAL_DIR := $(PROJ_DIR)/external
@@ -107,7 +107,6 @@ SRC_FILES += \
   $(APP_DIR)/modules/imu/imu_manager.c \
   $(APP_DIR)/modules/imu/imu_service.c \
   $(APP_DIR)/main.c \
-  $(SRC_INVENSENSE)
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -178,12 +177,11 @@ INC_FOLDERS += \
   $(APP_DIR)/messages \
   $(APP_DIR)/boards \
   $(APP_DIR)/modules/imu \
-  $(INC_INVENSENSE)
-  #$(EXTERNAL_DIR)/invn
+  $(EXTERNAL_DIR)/invn
   
 
 # Libraries common to all targets
-#LIB_FILES += $(EXTERNAL_DIR)/invn/$(INVN_LIB_NAME).a \
+LIB_FILES += $(EXTERNAL_DIR)/invn/$(INVN_LIB_NAME).a \
 
 # Optimization flags
 OPT = -O3 -g3
@@ -205,15 +203,15 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=6
 CFLAGS += -DS132
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
-#CFLAGS += -DDEBUG
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-#CFLAGS += -Wall -Werror
-#CFLAGS += -Wall
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
+#CFLAGS += -DDEBUG
+#CFLAGS += -Wall -Werror
+#CFLAGS += -Wall
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
@@ -257,15 +255,16 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: gen_commit_hash bluetera
+default: gen_commit_hash build_invn_lib bluetera
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		bluetera
-	@echo		flash_softdevice
-	@echo		sdk_config - starting external tool for editing sdk_config.h
-	@echo		flash      - flashing binary
+	@echo		bluetera (default)
+	@echo		flash_softdevice - flash soft device
+	@echo		flash - flashing binary
+	@echo		build_invn_lib - build invensense library
+	@echo 		gen_commit_hash - re-generate commit hash file
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
