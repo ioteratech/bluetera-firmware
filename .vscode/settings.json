@@ -26,7 +26,8 @@
 		"nrf_log_ctrl.h": "c",
 		"bltr_invn_wrapper.h": "c",
 		"sensortypes.h": "c",
-		"bltr_imu.h": "c"
+		"bltr_imu.h": "c",
+		"bluetera_constants.h": "c"
 	},
 	"files.exclude": {
 		"**/.git": true,
@@ -34,7 +35,5 @@
 	},
 	"editor.detectIndentation": false,
 	"editor.tabSize": 4,
-	"editor.insertSpaces": false,
-	"nrf.sdk.path": "D:/dev/nordic/sdk/nRF5_SDK_15.2.0_9412b96/",
-	"nrf.sdk.toolpath": "C:/Program Files (x86)/GNU Tools ARM Embedded/7 2018-q2-update/bin/"
+	"editor.insertSpaces": false
 }
