@@ -10,9 +10,9 @@ Visit our website: https://ioteratech.com
 ## Getting Started
 
 Bluetera is an open source IoT platform for the development of smart and connected products. The platform includes:
-* Bluetera Hardware module - repository [here]()
+* Bluetera Hardware module - repository (coming soon)
 * Bluetera Firmware (this repository)
-* Blutera SDK(s) - repositories [here](https://github.com/ioteratech/)
+* Bluetera SDK(s) - repositories [here](https://github.com/ioteratech/)
 
 This guide provides a detailed description on how to build and debug the Bluetera firmware. If you just want to run the sample code without modifying the firmware - checkout the complementary [SDK repositories](https://github.com/ioteratech/).
 
@@ -22,31 +22,25 @@ This guide provides a detailed description on how to build and debug the Blueter
 * Windows 7 and later (should work, but not tested, on Linux nor Mac).
 * Nordic Semiconductor's nRF5 SDK, version 15.2.0 - download [here](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK/Download#infotabs)
 * GNU Tools ARM Embedded<sup id="a1">[1](#f1)</sup>, version '6 2017-q2-update' or higher - download [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads).
+* *Make* for Windows. We used GNU-make, download from [here](https://www.gnu.org/software/make/). 
   
 if might also want to install:
 * Visual Studio Code IDE - download [here](https://code.visualstudio.com)
 * Invensense Embedded Motion Driver<sup id="a2">[2](#f1)</sup> (only if you intend to modify the Bluetera IMU driver) - download [here](https://www.invensense.com)
 
 ### Installing
-You can more-or-less follow the instructions of [this blog](https://devzone.nordicsemi.com/tutorials/b/getting-started/posts/development-with-gcc-and-eclipse), skipping Eclipse-related stuff (that is, unless you want to use Eclipse as your IDE :-)):
-
-* Unzip nRF5-SDK to some folder, preferably with not spaces in the path name. 
-* Install the ARM compiler
-* Go to the SDK folder, and make sure the build script *<NRF_SDK_ROOT>\components\toolchain\gcc\Makefile.windows* points to the correct version of the ARM compiler. It should look something like:
+* Install the ARM compiler - *GNU Tools ARM Embedded*.
+* Install *GNU-Make*. Make sure the path to the *make.exe* executable has been added to your *PATH* environment variable.
+* Unzip nRF5-SDK to some folder, preferably with not spaces in the path name.
+* Go to the SDK folder, and make sure the build script *<NRF_SDK_ROOT>\nRF5_SDK_15.2.0_9412b96\components\toolchain\gcc\Makefile.windows* points to the correct version of the ARM compiler. The file should look something like:
 ```
 GNU_INSTALL_ROOT := C:/Program Files (x86)/GNU Tools ARM Embedded/6 2017-q2-update/bin/
 GNU_VERSION := 6.3.1
 GNU_PREFIX := arm-none-eabi
 ```
 
-#### Test your installation
-If all went well, you should be able to build Nordic's sample project:
-* Open a command-line under *<NRF_SDK_ROOT>\examples\peripheral\blinky\<BOARD>\s132\armgcc* <br/>(*BOARD* is *pca10040* for nRF52832-DK, and *pca10056* for nRF52840-DK).
-* Run *make*
-* Check if the firmware image file was created - *_build\nrf52832_xxaa.hex*
-
 ### Build
-* Set an environment variable *NRF_SDK_ROOT* to the nRF-SDK top folder (e.g. *C:\dev\nordic\sdk\nRF5_SDK_15.2.0_9412b96*).
+* Set an environment variable *NRF_SDK_ROOT* to the nRF-SDK top folder (e.g. *C:\dev\nordic\sdks*).
 * Clone this repository, and open a command-line in the top folder
 * Run *make*
 * The generated firmware image is *_build\bluetera.hex*
@@ -82,10 +76,15 @@ The Following images illustrate the connection without a battery:
   * Connect the Development Board to a PC via USB.
   * Turn it on, and wait until drivers are installed.
   * If all works well, a new virtual drive named 'JLINK' will be added to your machine.
-  * Drag-and-Drop the firmware image file: *_build\bluetera.hex* to the JLink virtual drive, and wait for the programming to complete.
+  * Open command-line under the repository folder (i.e. to where the Makefile is)
+  * Invoke the following commands to build and flash the device:
+```
+> make
+> make flash
+```
       
 ## First Usage (Windows Logger Demo)
-Iotera logger demo is a Windows open source app that illustrates the usage of the IMU module and data logging. The source code and app can be found in [this repository]()
+Iotera logger demo is a Windows open source app that illustrates the usage of the IMU module and data logging. The source code and app can be found in [this repository](https://github.com/ioteratech/bluetera-windows-sdk)
 1. Prerequisite:
  * Machine with windows operating system 
  * Bluetera device with firmware that fits the Logger APIs
