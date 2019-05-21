@@ -40,7 +40,7 @@ GNU_PREFIX := arm-none-eabi
 ```
 
 ### Build
-* Set an environment variable *NRF_SDK_ROOT* to the nRF-SDK top folder (e.g. *C:\dev\nordic\sdks*).
+* Set an environment variable *NRF_SDK_ROOT* to the nRF-SDK top folder (e.g. *C:/dev/nordic/sdks*). Use Unix-style path separator ('/')
 * Clone this repository, and open a command-line in the top folder
 * Run *make*
 * The generated firmware image is *_build\bluetera.hex*
