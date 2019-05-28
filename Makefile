@@ -15,6 +15,7 @@ EXTERNAL_DIR := $(PROJ_DIR)/external
 
 # Hardware
 BLUETERA_BOARD := BLUETERA_BOARD_V1
+NRF_CHIP := NRF52840
 
 # Invensense ICM20649 library
 SRC_INVENSENSE = $(wildcard $(EXTERNAL_DIR)/invn/*.c) \
@@ -29,11 +30,10 @@ INC_INVENSENSE = $(EXTERNAL_DIR) \
 # $(info $$SRC_INVENSENSE is [${SRC_INVENSENSE}])
 
 $(OUTPUT_DIRECTORY)/bluetera.out: \
-  LINKER_SCRIPT  := bluetera.ld
+  LINKER_SCRIPT  := bluetera_$(NRF_CHIP).ld
 
 # Source files common to all targets
 SRC_FILES += \
-  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_uart.c \
@@ -83,7 +83,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
-  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_spi.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
@@ -158,8 +157,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_link_ctx_manager \
   $(SDK_ROOT)/components/ble/ble_services/ble_dis \
   $(SDK_ROOT)/components/softdevice/common \
-  $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
-  $(SDK_ROOT)/components/softdevice/s132/headers \
   $(SDK_ROOT)/components/toolchain/cmsis/include \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
@@ -196,11 +193,7 @@ CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DCONFIG_NFCT_PINS_AS_GPIOS
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
-CFLAGS += -DNRF52
-CFLAGS += -DNRF52832_XXAA
-CFLAGS += -DNRF52_PAN_74
 CFLAGS += -DNRF_SD_BLE_API_VERSION=6
-CFLAGS += -DS132
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
 CFLAGS += -mcpu=cortex-m4
@@ -224,11 +217,7 @@ ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DFLOAT_ABI_HARD
-ASMFLAGS += -DNRF52
-ASMFLAGS += -DNRF52832_XXAA
-ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=6
-ASMFLAGS += -DS132
 ASMFLAGS += -DSOFTDEVICE_PRESENT
 ASMFLAGS += -DSWI_DISABLE0
 
@@ -246,6 +235,58 @@ bluetera: CFLAGS += -D__HEAP_SIZE=8192
 bluetera: CFLAGS += -D__STACK_SIZE=8192
 bluetera: ASMFLAGS += -D__HEAP_SIZE=8192
 bluetera: ASMFLAGS += -D__STACK_SIZE=8192
+
+# chip specific
+ifeq ($(NRF_CHIP), NRF52832)
+
+SRC_FILES += $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
+	$(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S
+
+INC_FOLDERS += $(SDK_ROOT)/components/softdevice/s132/headers/nrf52 \
+	$(SDK_ROOT)/components/softdevice/s132/headers
+
+CFLAGS += -DNRF52
+CFLAGS += -DNRF52832_XXAA
+CFLAGS += -DNRF52_PAN_74
+CFLAGS += -DS132
+
+ASMFLAGS += -DNRF52
+ASMFLAGS += -DNRF52832_XXAA
+ASMFLAGS += -DNRF52_PAN_74
+ASMFLAGS += -DS132
+
+SOFTDEVICE_HEX := s132/hex/s132_nrf52_6.1.0_softdevice.hex
+
+else
+
+SRC_FILES += $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
+	$(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S
+
+INC_FOLDERS += $(SDK_ROOT)/components/softdevice/s140/headers/nrf52 \
+  	$(SDK_ROOT)/components/softdevice/s140/headers
+
+CFLAGS += -DNRF52840_XXAA
+CFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
+CFLAGS += -DS140
+
+CFLAGS += -DuECC_ENABLE_VLI_API=0
+CFLAGS += -DuECC_OPTIMIZATION_LEVEL=3
+CFLAGS += -DuECC_SQUARE_FUNC=0
+CFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0
+CFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
+
+ASMFLAGS += -DNRF52840_XXAA
+ASMFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
+ASMFLAGS += -DS140
+ASMFLAGS += -DuECC_ENABLE_VLI_API=0
+ASMFLAGS += -DuECC_OPTIMIZATION_LEVEL=3
+ASMFLAGS += -DuECC_SQUARE_FUNC=0
+ASMFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0
+ASMFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
+
+SOFTDEVICE_HEX := s140/hex/s140_nrf52_6.1.0_softdevice.hex
+
+endif
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
@@ -288,8 +329,8 @@ flash: $(OUTPUT_DIRECTORY)/bluetera.hex
 
 # Flash softdevice
 flash_softdevice:
-	@echo Flashing: s132_nrf52_6.1.0_softdevice.hex
-	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_6.1.0_softdevice.hex --sectorerase
+	@echo Flashing: $(SOFTDEVICE_HEX)
+	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(SOFTDEVICE_HEX) --sectorerase
 	nrfjprog -f nrf52 --reset
 
 INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, $(basename $(notdir $(SRC_INVENSENSE)))))
