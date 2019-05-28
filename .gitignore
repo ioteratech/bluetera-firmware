@@ -4,3 +4,4 @@ _hex/
 application/messages/*.pb
 application/commit_hash.h
 debug.bat
+bootloader/_build

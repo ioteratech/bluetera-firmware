@@ -27,7 +27,9 @@
 		"bltr_invn_wrapper.h": "c",
 		"sensortypes.h": "c",
 		"bltr_imu.h": "c",
-		"bluetera_constants.h": "c"
+		"bluetera_constants.h": "c",
+		"nrf_bootloader_info.h": "c",
+		"ble_dfu.h": "c"
 	},
 	"files.exclude": {
 		"**/.git": true,

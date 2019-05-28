@@ -25,6 +25,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <nrf_dfu_ble_svci_bond_sharing.h>
+#include <nrf_svci_async_function.h>
+#include <nrf_svci_async_handler.h>
+
 #include <nordic_common.h>
 #include <nrf.h>
 #include <nrf_sdm.h>
@@ -47,6 +51,8 @@
 #include <ble_conn_state.h>
 #include <nrf_pwr_mgmt.h>
 #include <app_timer.h>
+#include <ble_dfu.h>
+#include <nrf_power.h>
 
 #include <nrf_log.h>
 #include <nrf_log_ctrl.h>
@@ -58,6 +64,8 @@
 #include <app_scheduler.h>
 
 #include <nrfx_timer.h>
+
+#include <nrf_bootloader_info.h>
 
 #include "bluetera_boards.h"
 #include "imu_manager.h"
@@ -159,6 +167,8 @@ static void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const *
 static void on_ble_disconnected(void*, uint16_t);
 static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg);
 
+static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event);
+
 int main()
 {
 	// note: initialization order is important - rearrange with care!
@@ -172,7 +182,7 @@ int main()
     APP_ERROR_CHECK(err_code);
 
 	NRF_LOG_INFO("startup");
-	
+
 	timers_init();
 
 	// power management
@@ -394,6 +404,7 @@ static void services_init()
 {
 	ret_code_t err_code;
 	nrf_ble_qwr_init_t qwr_init = {0};
+	ble_dfu_buttonless_init_t dfus_init = {0};
 	static char hw_version_str[16] = {0};
 	static char fw_version_str[16] = {0};
 
@@ -752,16 +763,14 @@ static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
             NRF_LOG_INFO("Device is preparing to enter bootloader mode.");
 
             // Prevent device from advertising on disconnect.
-            ble_adv_modes_config_t config;
-            advertising_config_get(&config);
+            ble_adv_modes_config_t config = { 0 };   
+			config.ble_adv_fast_enabled  = true;
+			config.ble_adv_fast_interval = APP_ADV_INTERVAL;
+			config.ble_adv_fast_timeout  = APP_ADV_DURATION;
             config.ble_adv_on_disconnect_disabled = true;
-            ble_advertising_modes_config_set(&m_advertising, &config);
+            ble_advertising_modes_config_set(&_advertising, &config);
+			sd_ble_gap_disconnect(_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
 
-            // Disconnect all other bonded devices that currently are connected.
-            // This is required to receive a service changed indication
-            // on bootup after a successful (or aborted) Device Firmware Update.
-            uint32_t conn_count = ble_conn_state_for_each_connected(disconnect, NULL);
-            NRF_LOG_INFO("Disconnected %d links.", conn_count);
             break;
         }
 
