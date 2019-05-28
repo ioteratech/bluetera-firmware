@@ -61,7 +61,6 @@
 
 #include "bluetera_boards.h"
 #include "imu_manager.h"
-#include "imu_service.h"
 #include "bluetera_messages.h"
 #include "utils.h"
 #include "bluetera_constants.h"
@@ -128,7 +127,6 @@
 #define LED_TIMER_INTERVAL_ADV		        APP_TIMER_TICKS(2000)
 #define LED_TIMER_INTERVAL_CONNECTED        APP_TIMER_TICKS(500)
 
-BLE_IMU_DEF(_imu_service);
 NRF_BLE_GATT_DEF(_gatt);                                           /**< GATT module instance. */
 NRF_BLE_QWR_DEF(_qwr);                                             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(_advertising);                                 /**< Advertising module instance. */
@@ -143,7 +141,7 @@ static uint16_t _conn_handle = BLE_CONN_HANDLE_INVALID;
 // UUID of services to advertise
 static ble_uuid_t _adv_uuids[] =
 {
-	// {IMU_SERVICE_UUID, BLE_UUID_TYPE_VENDOR_BEGIN}
+	// {BLE_UUID_TYPE_VENDOR_BEGIN}
 };
 
 static void timers_init();
