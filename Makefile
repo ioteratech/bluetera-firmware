@@ -15,7 +15,7 @@ EXTERNAL_DIR := $(PROJ_DIR)/external
 
 # Hardware
 BLUETERA_BOARD := BLUETERA_BOARD_V1
-NRF_CHIP := NRF52840
+NRF_CHIP := NRF52832
 
 # Invensense ICM20649 library
 SRC_INVENSENSE = $(wildcard $(EXTERNAL_DIR)/invn/*.c) \
