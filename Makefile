@@ -339,8 +339,9 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 flash: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Flashing: $<
 	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version 1 --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
-	nrfjprog -f nrf52 --program $< --sectorerase
-	nrfjprog -f nrf52 --reset
+	nrfjprog --program $< --sectorerase
+	nrfjprog --program _build/bootloader_settings.hex --sectoranduicrerase
+	nrfjprog -r
 
 # Flash softdevice
 flash_softdevice:
