@@ -166,8 +166,7 @@ static void on_write(ble_bus_t * p_bus, ble_evt_t const * p_ble_evt)
  */
 static void on_hvx_tx_complete(ble_bus_t * p_bus, ble_evt_t const * p_ble_evt)
 {
-    ret_code_t                 err_code;
-    ble_bus_evt_t              evt;
+    ble_bus_evt_t evt;
 
 	nrf_atomic_u32_add(&p_bus->free_buffers, p_ble_evt->evt.gatts_evt.params.hvn_tx_complete.count);
     if (p_bus->is_notification_enabled)

@@ -144,13 +144,7 @@ APP_TIMER_DEF(_led_timer_id);
 #define SCHED_QUEUE_SIZE				256
 
 // handle of the current connection
-static uint16_t _conn_handle = BLE_CONN_HANDLE_INVALID; 
-
-// UUID of services to advertise
-static ble_uuid_t _adv_uuids[] =
-{
-	// {BLE_UUID_TYPE_VENDOR_BEGIN}
-};
+static uint16_t _conn_handle = BLE_CONN_HANDLE_INVALID;
 
 static void timers_init();
 static void ble_stack_init();

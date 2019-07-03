@@ -34,7 +34,7 @@ static void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
 
 }
 
-uint64_t bltr_utils_init()
+void bltr_utils_init()
 {
 	nrfx_timer_config_t timer_cfg = NRFX_TIMER_DEFAULT_CONFIG;
 

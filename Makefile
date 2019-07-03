@@ -214,7 +214,7 @@ CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
 #CFLAGS += -DDEBUG
 #CFLAGS += -Wall -Werror
-#CFLAGS += -Wall
+CFLAGS += -Wall
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
