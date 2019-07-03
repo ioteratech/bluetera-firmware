@@ -268,6 +268,7 @@ ASMFLAGS += -DNRF52_PAN_74
 ASMFLAGS += -DS132
 
 SOFTDEVICE_HEX := s132/hex/s132_nrf52_6.1.0_softdevice.hex
+NRF_FAMILY := NRF52
 
 else
 
@@ -297,6 +298,7 @@ ASMFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0
 ASMFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
 
 SOFTDEVICE_HEX := s140/hex/s140_nrf52_6.1.0_softdevice.hex
+NRF_FAMILY := NRF52840
 
 endif
 
@@ -336,6 +338,7 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Flashing: $<
+	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version 1 --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
 	nrfjprog -f nrf52 --program $< --sectorerase
 	nrfjprog -f nrf52 --reset
 
