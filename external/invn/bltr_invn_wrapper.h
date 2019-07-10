@@ -44,6 +44,7 @@ typedef struct
 uint32_t bltr_invn_init(const bltr_invn_init_t* init);
 uint32_t bltr_invn_start(const bltr_imu_config_t* config);
 uint32_t bltr_invn_stop();
+void bltr_invn_set_gyro_bias(int16_t* bias);
 
 void bltr_invn_poll();
 void bltr_invn_irq_handler();

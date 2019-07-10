@@ -41,9 +41,15 @@
 static nrfx_spim_t _spi = NRFX_SPIM_INSTANCE(ICM_SPI_INSTANCE);
 static bltr_imu_data_handler_t _imu_data_handler;
 
+#define CALIBRATION_SAMPLES	4000
+
+static bool _is_calibrating = false;
+static uint16_t _calibration_sample_counter = 0;
+static int32_t _gyro_sum[3] = { 0 };
+
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
-//static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
-//static void _synced_irq_data_handler(void * p_event_data, uint16_t event_size);
+static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
+static void _synced_irq_data_handler(void * p_event_data, uint16_t event_size);
 static int _read_reg(void* context, uint8_t reg, uint8_t* data, uint32_t len);
 static int _write_reg(void* context, uint8_t reg, const uint8_t* data, uint32_t len);
 static void _delay_ms(int ms);
@@ -51,6 +57,7 @@ static void _delay_us(int us);
 static uint64_t _get_timestamp_us();
 static void _enter_critical_section();
 static void _leave_critical_section();
+static ret_code_t _bltr_imu_calibrate();
 
 void bltr_imu_init(const bltr_imu_init_t* init)
 {
@@ -84,6 +91,7 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 	bltr_invn_init_t invn_init = 
 	{
 		.imu_data_handler = init->imu_data_handler,
+		.imu_irq_data_handler = _imu_irq_data_handler,
 		.read_reg = _read_reg,
 		.write_reg = _write_reg,
 		.delay_ms = _delay_ms,
@@ -93,6 +101,7 @@ void bltr_imu_init(const bltr_imu_init_t* init)
 		.leave_critical_section = _leave_critical_section,
 		.spi = &_spi
 	};
+
 	bltr_invn_init(&invn_init);
 }
 
@@ -109,6 +118,7 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 			{
 				bltr_imu_config_t config = 
 				{
+					.mode = DMP,
 					.data_types = cmd->payload.start.data_types,
 					.odr = cmd->payload.start.odr,
 					.acc_fsr = cmd->payload.start.acc_fsr,
@@ -117,13 +127,13 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 
 				err = bltr_imu_start(&config);
 			}
-
 			break;
-
 		case BLUETERA_IMU_COMMAND_STOP_TAG:
 			err = bltr_imu_stop();						
 			break;
-
+		case BLUETERA_IMU_COMMAND_CALIBRATE_TAG:
+			err = _bltr_imu_calibrate();
+			break;
 		default:
 			err = BLTR_IMU_ERROR_INVALID_COMMAND;
 			break;
@@ -144,7 +154,8 @@ ret_code_t bltr_imu_stop()
 
 void bltr_imu_poll()
 {
-	bltr_invn_poll();
+	if(!_is_calibrating)
+		bltr_invn_poll();
 }
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
@@ -153,16 +164,72 @@ static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t a
 		bltr_invn_irq_handler();
 }
 
-// static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data)
-// {
-// 	app_sched_event_put(&data, sizeof(data), _synced_irq_data_handler);
-// }
+static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data)
+{
+	static uint32_t c = 0;
 
-// static void _synced_irq_data_handler(void* p_event_data, uint16_t event_size)
-// {
-// 	bltr_imu_sensor_data_t* sensor_data = (bltr_imu_sensor_data_t*)p_event_data;
-// 	_imu_data_handler(sensor_data);
-// }
+	if(c % 1100 == 0)
+	{
+		NRF_LOG_INFO("blyat");
+	}
+	
+	c++;
+
+	if(_is_calibrating)
+	{
+		APP_ERROR_CHECK_BOOL(data->sensor == BLTR_IMU_SENSOR_TYPE_RAW);		
+		
+		_gyro_sum[0] += data->raw.gyroscope[0];
+		_gyro_sum[1] += data->raw.gyroscope[1];
+		_gyro_sum[2] += data->raw.gyroscope[2];
+
+		_calibration_sample_counter++;
+
+		if(_calibration_sample_counter == CALIBRATION_SAMPLES)
+		{
+			int16_t temp[3] = {  -(int16_t)((float)_gyro_sum[0] / CALIBRATION_SAMPLES / 4),  -(int16_t)((float)_gyro_sum[1] / CALIBRATION_SAMPLES / 4),  -(int16_t)((float)_gyro_sum[2] / CALIBRATION_SAMPLES / 4) };
+			NRF_LOG_INFO("calib val: %d, %d, %d", temp[0],  temp[1],  temp[2]);
+			bltr_invn_set_gyro_bias(temp);
+			_is_calibrating = false;
+			bltr_invn_stop();
+		}
+	}
+	else
+	{
+		// direct mode
+		//app_sched_event_put(data, sizeof(bltr_imu_sensor_data_t), _synced_irq_data_handler);
+	}
+}
+
+static ret_code_t _bltr_imu_calibrate()
+{
+	NRF_LOG_INFO("started calibrating");
+
+	int16_t bias[3];
+	memset(bias, 0, sizeof(bias));
+	bltr_invn_set_gyro_bias(bias);
+
+	bltr_imu_config_t imu_cfg = 
+	{
+		.mode = DIRECT,
+		.data_types = BLTR_IMU_DATA_TYPE_RAW,
+		.odr = 1100,
+		.acc_fsr = 4,
+		.gyro_fsr = 500
+	};
+
+	_calibration_sample_counter = 0;
+	memset(_gyro_sum, 0, sizeof(_gyro_sum));
+	_is_calibrating = true;
+
+	return bltr_imu_start(&imu_cfg);
+}
+
+static void _synced_irq_data_handler(void* p_event_data, uint16_t event_size)
+{
+	bltr_imu_sensor_data_t* sensor_data = (bltr_imu_sensor_data_t*)p_event_data;
+	_imu_data_handler(sensor_data);
+}
 
 static int _read_reg(void* context, uint8_t reg, uint8_t* data, uint32_t len)
 {

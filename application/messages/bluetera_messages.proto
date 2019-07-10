@@ -74,6 +74,7 @@ message ImuCommand
 	oneof payload {
 		ImuStart start = 1;
 		bool stop = 2;
+		bool calibrate = 3;
 	}
 }
 
