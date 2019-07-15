@@ -120,6 +120,7 @@ SRC_FILES += \
   $(APP_DIR)/messages/bluetera_messages.c \
   $(APP_DIR)/messages/bluetera_messages.pb.c \
   $(APP_DIR)/modules/imu/imu_manager.c \
+  $(APP_DIR)/modules/sd_card/sd_card_manager.c \
   $(APP_DIR)/services/bus/ble_bus.c \
   $(APP_DIR)/utilities/utils.c \
 
@@ -201,6 +202,7 @@ INC_FOLDERS += \
   $(APP_DIR)/config \
   $(APP_DIR)/messages \
   $(APP_DIR)/modules/imu \
+  $(APP_DIR)/modules/sd_card \
   $(APP_DIR)/services/bus \
   $(APP_DIR)/utilities \
   $(EXTERNAL_DIR)/invn

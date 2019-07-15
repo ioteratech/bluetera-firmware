@@ -22,11 +22,14 @@
 	SOFTWARE.
 */
 
-#ifndef BLTR_SD_CARD_H_
-#define BLTR_SD_CARD_H_
+#ifndef SD_CARD_MANAGER_H_
+#define SD_CARD_MANAGER_H_
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "bluetera_messages.h"
+#include "bluetera_err.h"
+#include "app_error.h"
 
 typedef void (*bltr_sd_card_status_handler_t)(bool inserted);
 
@@ -36,10 +39,9 @@ typedef struct
 } bltr_sd_card_init_t;
 
 void bltr_sd_card_init(const bltr_sd_card_init_t* init);
-void bltr_sd_card_open_log();
-void bltr_sd_card_close_log();
-void bltr_sd_card_write_log(uint8_t* data, uint16_t len);
-void bltr_sd_card_flush();
+ret_code_t bltr_sd_card_open_log();
+ret_code_t bltr_sd_card_close_log();
+ret_code_t bltr_sd_card_write_log(uint8_t* data, uint16_t len);
 bool bltr_sd_card_is_inserted();
 
 #endif

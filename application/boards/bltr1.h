@@ -37,4 +37,11 @@
 #define LED_BLUE_PIN				26
 #define DEBUG_GPIO_TIMING			23
 
+// SD card SPI
+#define SDC_SPI_SCK_PIN     		18
+#define SDC_SPI_MOSI_PIN    		13
+#define SDC_SPI_MISO_PIN    		12
+#define SDC_SPI_CS_PIN      		16
+#define SDC_CD_PIN      			14
+
 #endif

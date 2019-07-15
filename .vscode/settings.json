@@ -29,7 +29,16 @@
 		"bltr_imu.h": "c",
 		"bluetera_constants.h": "c",
 		"nrf_bootloader_info.h": "c",
-		"ble_dfu.h": "c"
+		"ble_dfu.h": "c",
+		"nrf_block_dev_sdc.h": "c",
+		"ff.h": "c",
+		"sd_card_manager.h": "c",
+		"bluetera_messages.h": "c",
+		"bluetera_err.h": "c",
+		"app_error.h": "c",
+		"nordic_common.h": "c",
+		"bluetera_boards.h": "c",
+		"bluetera_config.h": "c"
 	},
 	"files.exclude": {
 		"**/.git": true,
