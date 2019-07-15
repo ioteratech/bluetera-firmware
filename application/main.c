@@ -416,7 +416,7 @@ static void services_init()
 	// initialize Device Information service
 	ble_dis_init_t dis_init = { 0 };
 	snprintf(hw_version_str, sizeof(hw_version_str), "%d.%d", MSB_16(HARDWARE_VERSION), LSB_16(HARDWARE_VERSION));
-	snprintf(fw_version_str, sizeof(fw_version_str), "%d.%d.%s", MSB_16(FIRMWARE_VERSION), LSB_16(FIRMWARE_VERSION), SCM_COMMIT_HASH);
+	snprintf(fw_version_str, sizeof(fw_version_str), "%d.%d.%s", MSB_16(FIRMWARE_VERSION), LSB_16(FIRMWARE_VERSION), SCM_COMMIT_HASH); // SCM_COMMIT_HASH is auto-defined in Makefile
 	//sprintf(device_id_str, "%llu", *((uint64_t*)NRF_FICR->DEVICEID));
 
     ble_srv_ascii_to_utf8(&dis_init.manufact_name_str, (char*)MANUFACTURER_NAME);

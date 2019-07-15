@@ -207,6 +207,7 @@ CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
 CFLAGS += -DNRF_DFU_SVCI_ENABLED
 CFLAGS += -DNRF_DFU_TRANSPORT_BLE=1
+CFLAGS += -DSCM_COMMIT_HASH=\"$(shell git rev-list --max-count=1 HEAD | cut -c1-8)\"
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -315,9 +316,9 @@ LIB_FILES += -lc -lnosys -lm
 # Default target
 # We only build invensense library if the library's sources are present
 ifneq ("$(wildcard $(EXTERNAL_DIR)/invn/IDDVersion.h)","")
-default: gen_commit_hash build_invn_lib bluetera
+default: build_invn_lib bluetera
 else
-default: gen_commit_hash bluetera
+default: bluetera
 endif
 
 # Print all targets that can be built
@@ -380,6 +381,3 @@ sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
 
 .PHONY: get_commit_hash
-
-gen_commit_hash:
-	./scripts/gen_commit_hash.sh
