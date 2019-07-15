@@ -356,11 +356,9 @@ flash_softdevice:
 INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, $(basename $(notdir $(SRC_INVENSENSE)))))
 
 # Create a DFU package
-generate_package: $(OUTPUT_DIRECTORY)/bluetera.hex	
-	@echo Updating bootloader settings
-	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version $(DFU_APP_VERSION) --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
+generate_package: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Generating DFU package
-	nrfutil pkg generate --hw-version 52 --application-version 1 --application $< --sd-req $(DFU_SD_REQ) --key-file bootloader\key\private_key.pem bluetera_dfu_package_v$(DFU_APP_VERSION).zip
+	nrfutil pkg generate --hw-version 52 --application-version $(DFU_APP_VERSION) --application $< --sd-req $(DFU_SD_REQ) --key-file bootloader\key\private_key.pem bluetera_dfu_package_v$(DFU_APP_VERSION).zip
 
 # Build Invensense library. Requires GNU tools
 build_invn_lib:
