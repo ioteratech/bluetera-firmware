@@ -55,6 +55,12 @@ message DownlinkMessage
 }
 
 // Control messsages - from host to Bluetera
+enum DataSinkType
+{
+	DATA_SINK_TYPE_BLE = 0;
+	DATA_SINK_TYPE_SDCARD = 1;
+}
+
 enum ImuDataType {
     UNKNOWN = 0x00;
 	QUATERNION = 0x01;
@@ -67,6 +73,7 @@ message ImuStart {
 	uint32 odr = 2;
 	uint32 acc_fsr = 3;
 	uint32 gyro_fsr = 4;
+	DataSinkType data_sink = 5;
 }
 
 message ImuCommand
