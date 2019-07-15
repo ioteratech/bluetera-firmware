@@ -75,10 +75,8 @@ This guide only covers updating the application firmware. If you wish to also up
 
 #### Preparation
 * Clone this repository, and open a command-line in the top folder
-* Run *make generate_pacakge APP_VERSION=1* - this will build the project, update the bootloader settings page, and create a zip package. 
-* Check if the package zip file was created - *bluetera_dfu_pacakge_v1.zip*
-
-**Be sure to increment the application version between versions** - this is how the bootloader detects than an upgrade is in order. To set a different application version, simply run *make generate_pacakge APP_VERSION=<version_integer>* 
+* Run *make generate_pacakge* - this will build the project, update the bootloader settings page, and create a zip package. 
+* Check if the package zip file was created - *bluetera_dfu_pacakge_{current git hash}.zip*
 
 #### Updating the firmware
 * Copy the zip package to your mobile device
@@ -116,15 +114,15 @@ The Following images illustrate the connection without a battery:
   * Connect the Development Board to a PC via USB.
   * Turn it on, and wait until drivers are installed.
   * If all works well, a new virtual drive named 'JLINK' will be added to your machine.
-  * Drag-and-Drop the firmware image file: *_build\bluetera.hex* to the JLink virtual drive, and wait for the programming to complete.
+  * Drag-and-Drop the firmware image file: *_build\bluetera.hex* AND *_build/bootloader_settings.hex* to the JLink virtual drive, and wait for the programming to complete.
       
 ## First Usage (Windows Logger Demo)
 Iotera logger demo is a Windows open source app that illustrates the usage of the IMU module and data logging. The source code and app can be found in [this repository]()
 1. Prerequisite:
- * Machine with windows operating system 
- * Bluetera device with firmware that fits the Logger APIs
- * BLE CSR Dongle and driver 
- * Logger demo software 
+    * Machine with windows operating system 
+    * Bluetera device with firmware that fits the Logger APIs
+    * BLE CSR Dongle and driver 
+    * Logger demo software 
 2. Run the demo, turn on your Bluetera, and click 'Start'
 
 ![Blutera Logger](docs/images/bluetera-logger.png)

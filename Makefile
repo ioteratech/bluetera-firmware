@@ -3,7 +3,14 @@ PROJECT_NAME     		:= bluetera
 TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
 INVN_LIB_NAME 			:= imu_driver
+
+# Be careful when changing the DFU_APP_VERSION variable!
+# If you upload a file with a version > 1 the bootloader will not let you
+# perform OTA updates with packages generated with a lower version number!
+# (all the packages available from the GitHub releases page will have version 1)
 DFU_APP_VERSION			:= 1
+
+SCM_COMMIT_HASH 		:= $(shell git rev-list --max-count=1 HEAD | cut -c1-8)
 
 # Commands
 MV := mv -f
@@ -197,7 +204,7 @@ OPT = -O3 -g3
 
 # C flags common to all targets
 CFLAGS += $(OPT)
-CFLAGS += -D${BLUETERA_BOARD}
+CFLAGS += -D$(BLUETERA_BOARD)
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DCONFIG_NFCT_PINS_AS_GPIOS
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
@@ -207,7 +214,7 @@ CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
 CFLAGS += -DNRF_DFU_SVCI_ENABLED
 CFLAGS += -DNRF_DFU_TRANSPORT_BLE=1
-CFLAGS += -DSCM_COMMIT_HASH=\"$(shell git rev-list --max-count=1 HEAD | cut -c1-8)\"
+CFLAGS += -DSCM_COMMIT_HASH=\"$(SCM_COMMIT_HASH)\"
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -316,9 +323,9 @@ LIB_FILES += -lc -lnosys -lm
 # Default target
 # We only build invensense library if the library's sources are present
 ifneq ("$(wildcard $(EXTERNAL_DIR)/invn/IDDVersion.h)","")
-default: build_invn_lib bluetera
+default: build_invn_lib bluetera generate_dfu_settings
 else
-default: bluetera
+default: bluetera generate_dfu_settings
 endif
 
 # Print all targets that can be built
@@ -339,10 +346,15 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 .PHONY: flash flash_softdevice erase
 
+# Generates the setting page for the bootloader. Needed when updating firmware via SWD,
+# so the bootloader will have the new checksum and version
+generate_dfu_settings: $(OUTPUT_DIRECTORY)/bluetera.hex
+	@echo Generating bootloader setting page for firmware: $<
+	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version $(DFU_APP_VERSION) --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
+
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Flashing: $<
-	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version $(DFU_APP_VERSION) --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
 	nrfjprog --program $< --sectorerase
 	nrfjprog --program _build/bootloader_settings.hex --sectoranduicrerase
 	nrfjprog -r
@@ -358,7 +370,7 @@ INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, 
 # Create a DFU package
 generate_package: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Generating DFU package
-	nrfutil pkg generate --hw-version 52 --application-version $(DFU_APP_VERSION) --application $< --sd-req $(DFU_SD_REQ) --key-file bootloader\key\private_key.pem bluetera_dfu_package_v$(DFU_APP_VERSION).zip
+	nrfutil pkg generate --hw-version 52 --application-version $(DFU_APP_VERSION) --application $< --sd-req $(DFU_SD_REQ) --key-file bootloader\key\private_key.pem bluetera_dfu_package_$(SCM_COMMIT_HASH).zip
 
 # Build Invensense library. Requires GNU tools
 build_invn_lib:
