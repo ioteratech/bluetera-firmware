@@ -3,6 +3,7 @@ PROJECT_NAME     		:= bluetera
 TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
 INVN_LIB_NAME 			:= imu_driver
+DFU_APP_VERSION			:= 1
 
 # Commands
 MV := mv -f
@@ -269,6 +270,7 @@ ASMFLAGS += -DS132
 
 SOFTDEVICE_HEX := s132/hex/s132_nrf52_6.1.0_softdevice.hex
 NRF_FAMILY := NRF52
+DFU_SD_REQ := 0xAF
 
 else
 
@@ -299,6 +301,7 @@ ASMFLAGS += -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1
 
 SOFTDEVICE_HEX := s140/hex/s140_nrf52_6.1.0_softdevice.hex
 NRF_FAMILY := NRF52840
+DFU_SD_REQ := 0xAE
 
 endif
 
@@ -338,7 +341,7 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Flashing: $<
-	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version 1 --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
+	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version $(DFU_APP_VERSION) --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
 	nrfjprog --program $< --sectorerase
 	nrfjprog --program _build/bootloader_settings.hex --sectoranduicrerase
 	nrfjprog -r
@@ -350,6 +353,13 @@ flash_softdevice:
 	nrfjprog -f nrf52 --reset
 
 INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, $(basename $(notdir $(SRC_INVENSENSE)))))
+
+# Create a DFU package
+generate_package: $(OUTPUT_DIRECTORY)/bluetera.hex	
+	@echo Updating bootloader settings
+	nrfutil settings generate --family $(NRF_FAMILY) --application $< --application-version $(DFU_APP_VERSION) --bootloader-version 1 --bl-settings-version 1 _build/bootloader_settings.hex
+	@echo Generating DFU package
+	nrfutil pkg generate --hw-version 52 --application-version 1 --application $< --sd-req $(DFU_SD_REQ) --key-file bootloader\key\private_key.pem bluetera_dfu_package_v$(DFU_APP_VERSION).zip
 
 # Build Invensense library. Requires GNU tools
 build_invn_lib:

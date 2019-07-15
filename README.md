@@ -19,11 +19,13 @@ This guide provides a detailed description on how to build and debug the Blueter
 
 ## Building the project
 ### Prerequisites
-* Windows 7 and later (should work, but not tested, on Linux nor Mac).
+* Windows 7 and later (should work, but not tested on Linux nor Mac).
 * Nordic Semiconductor's nRF5 SDK, version 15.2.0 - download [here](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK/Download#infotabs)
 * GNU Tools ARM Embedded<sup id="a1">[1](#f1)</sup>, version '6 2017-q2-update' or higher - download [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads).
+* In order to use over-the-air firmware update, you will also need Nordic's "_nrfutil_" tool - see [here](https://www.nordicsemi.com/Software-and-Tools/Development-Tools/nRF-Util).
   
-if might also want to install:
+  
+you might also want to install:
 * Visual Studio Code IDE - download [here](https://code.visualstudio.com)
 * Invensense Embedded Motion Driver<sup id="a2">[2](#f1)</sup> (only if you intend to modify the Bluetera IMU driver) - download [here](https://www.invensense.com)
 
@@ -52,13 +54,45 @@ If all went well, you should be able to build Nordic's sample project:
 * The generated firmware image is *_build\bluetera.hex*
 
 ## Programming / Debugging the Device
-### Prerequisite
-* Bluetera module (either with or without battery)
+There are two ways to program the Bluetera:
+1. By using over-the-air update via a mobile phone - easy, but without debug capabilities. **Unless you require debug capabilities, we recommend using this method.**
+2. By using a physical J-Link debugger - requires more effort (soldering, additional hardware etc.), but also enabled debugging the firmware
+
+### Over-the-Air (OTA) Programming
+Your Bluetera comes pre-programmed with Nordic's 'secure DFU bootloader'. Over-the-Air programming is a 3-step procedure:
+1. Create a Distribution Package - a signed zip archive with updated firmware
+2. Copy the package to your mobile phone
+3. Program the Bluetera using the 'nRF Connect' mobile application
+
+This guide only covers updating the application firmware. If you wish to also update other components (e.g. the _SoftDevice_), please follow the full guide - [here](https://infocenter.nordicsemi.com/index.jsp?topic=%2Fug_nrfutil%2FUG%2Fnrfutil%2Fnrfutil_intro.html&cp=6_5).
+
+#### Prerequisite
+* A Bluetera module
+* A Windows 10 machine, with the following software: 
+  * Python 2.7 - [here](https://www.python.org/download/releases/2.7/)
+  * Nordic's _nrfutil_ application. To install, follow the guide [here](https://infocenter.nordicsemi.com/index.jsp?topic=%2Fug_nrfutil%2FUG%2Fnrfutil%2Fnrfutil_intro.html)
+* A mobile phone (Android or iPhone), with Nordic's 'nRF Connect' application installed (get it from [Google Play](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en) / [App Store](https://apps.apple.com/us/app/nrf-connect/id1054362403))
+
+#### Preparation
+* Clone this repository, and open a command-line in the top folder
+* Run *make generate_pacakge APP_VERSION=1* - this will build the project, update the bootloader settings page, and create a zip package. 
+* Check if the package zip file was created - *bluetera_dfu_pacakge_v1.zip*
+
+**Be sure to increment the application version between versions** - this is how the bootloader detects than an upgrade is in order. To set a different application version, simply run *make generate_pacakge APP_VERSION=<version_integer>* 
+
+#### Updating the firmware
+* Copy the zip package to your mobile device
+* Open the 'nRF Connect' application, and connect to the Bluetera
+* Click the 'DFU' button (usually top-right), and follow the instructions
+
+### Programming via J-Link debugger
+#### Prerequisite
+* A Bluetera module (either with or without battery)
 * Nordic Semiconductor's Developement Kits ([nRF52832-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52-DK) / [nRF52840-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52840-DK)). 
 * A Windows 10 machine, with the following software: 
   * Segger J-Link software for Nordic - download [here](https://www.segger.com/downloads/jlink#J-LinkSoftwareAndDocumentationPack) 
-  * nRF command line tools - download [here](https://www.nordicsemi.com/Software-and-Tools/Development-Tools/nRF5-Command-Line-Tools/Download#infotabs)
-### Preperation
+  * nRF command line tools - download [here](https://www.nordicsemi.com/?sc_itemid=%7B56868165-9553-444D-AA57-15BDE1BF6B49%7D)
+#### Preperation
   * Solder 4 wires to Bluetera SWD pads - VCC, GND, CLK and SIO, shown on the right side of the following image: 
   
   <img style="display: block; margin-left:auto;  margin-right:auto;"  src=docs/images/bluetera_module_front_signals.png width="60%" height="60%"/> 
@@ -110,6 +144,6 @@ Iotera logger demo is a Windows open source app that illustrates the usage of th
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Notes
-<sup id="f1">1</sup> Nordic support other IDEs and toolchains. This repository was only built and tested using GCC. [↩](#a1)
+<sup id="f1">1</sup> Nordic supports other IDEs and toolchains. This repository was only built and tested using GCC. [↩](#a1)
 
 <sup id="f2">2</sup> InvenSense driver is not open-source. You can, however, request the sources from TDK. Bluetera firmware includes the Invensense driver as a pre-compiled library [↩](#a1)
