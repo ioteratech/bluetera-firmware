@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-uint64_t bltr_utils_init();
+void bltr_utils_init();
 uint64_t bltr_utils_get_timestamp();
 
 #endif

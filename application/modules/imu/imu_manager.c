@@ -42,8 +42,8 @@ static nrfx_spim_t _spi = NRFX_SPIM_INSTANCE(ICM_SPI_INSTANCE);
 static bltr_imu_data_handler_t _imu_data_handler;
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
-static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
-static void _synced_irq_data_handler(void * p_event_data, uint16_t event_size);
+//static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
+//static void _synced_irq_data_handler(void * p_event_data, uint16_t event_size);
 static int _read_reg(void* context, uint8_t reg, uint8_t* data, uint32_t len);
 static int _write_reg(void* context, uint8_t reg, const uint8_t* data, uint32_t len);
 static void _delay_ms(int ms);
@@ -101,7 +101,6 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
 		return BLTR_SUCCESS;
 
-	ret_code_t inner_err;
 	ret_code_t err = BLTR_SUCCESS;
 	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
 	switch(cmd->which_payload)
@@ -154,16 +153,16 @@ static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t a
 		bltr_invn_irq_handler();
 }
 
-static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data)
-{
-	app_sched_event_put(&data, sizeof(data), _synced_irq_data_handler);
-}
+// static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data)
+// {
+// 	app_sched_event_put(&data, sizeof(data), _synced_irq_data_handler);
+// }
 
-static void _synced_irq_data_handler(void* p_event_data, uint16_t event_size)
-{
-	bltr_imu_sensor_data_t* sensor_data = (bltr_imu_sensor_data_t*)p_event_data;
-	_imu_data_handler(sensor_data);
-}
+// static void _synced_irq_data_handler(void* p_event_data, uint16_t event_size)
+// {
+// 	bltr_imu_sensor_data_t* sensor_data = (bltr_imu_sensor_data_t*)p_event_data;
+// 	_imu_data_handler(sensor_data);
+// }
 
 static int _read_reg(void* context, uint8_t reg, uint8_t* data, uint32_t len)
 {

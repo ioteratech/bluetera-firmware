@@ -83,13 +83,13 @@ ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
 			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_QUATERNION_TAG;
 			message.payload.quaternion.timestamp = (uint32_t)(data->timestamp / 1000.0f);
 			message.payload.quaternion.has_timestamp = true;
-			message.payload.quaternion.w = data->acceleration[0];
+			message.payload.quaternion.w = data->quaternion[0];
 			message.payload.quaternion.has_w = true;
-			message.payload.quaternion.x = data->acceleration[1];
+			message.payload.quaternion.x = data->quaternion[1];
 			message.payload.quaternion.has_x = true;
-			message.payload.quaternion.y = data->acceleration[2];
+			message.payload.quaternion.y = data->quaternion[2];
 			message.payload.quaternion.has_y = true;
-			message.payload.quaternion.z = data->acceleration[3];
+			message.payload.quaternion.z = data->quaternion[3];
 			message.payload.quaternion.has_z = true;
 			err = _try_send_message(&message);
 			break;
