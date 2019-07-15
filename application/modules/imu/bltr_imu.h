@@ -54,7 +54,7 @@ typedef struct
 	};
 } bltr_imu_sensor_data_t;
 
-// TODO TEMPORARY! REMOVE!
+// TODO(tomer) TEMPORARY! REMOVE!
 typedef enum
 {
 	BLTR_IMU_DATA_TYPE_QUATERNION = 0x01,
@@ -62,15 +62,7 @@ typedef enum
 	BLTR_IMU_DATA_TYPE_RAW = 0x04
 } bltr_imu_data_type_t;
 
-typedef enum
-{
-	DISABLED,
-	DMP,
-	DIRECT
-} ImuMode;
-
 typedef struct {
-	ImuMode mode;
 	uint32_t data_types;
 	uint32_t odr;
 	uint32_t acc_fsr;

@@ -11,26 +11,20 @@
 
 // bank 0
 #define ICM_REG_WHO_AM_I           		0x00
-#define ICM_REG_USER_CTRL				0x03
 #define ICM_REG_PWR_MGMT_1        		0x06
 #define ICM_REG_PWR_MGMT_2         		0x07
 #define ICM_REG_INT_PIN_CFG        		0x0F
 #define ICM_REG_INT_ENABLE_1       		0x11
 #define ICM_REG_GYRO_XOUT_H        		0x33
 #define ICM_REG_ACCEL_XOUT_H       		0x2D
-#define ICM_REG_FIFO_EN_2				0x67
-#define ICM_REG_FIFO_RST				0x68
-#define ICM_REG_FIFO_MODE				0x69
-#define ICM_REG_FIFO_COUNTH				0x70
-#define ICM_REG_FIFO_R_W				0x72
 
 // bank 2
 #define ICM_REG_GYRO_SMPLRT_DIV    		0x00
 #define ICM_REG_GYRO_CONFIG_1      		0x01
-#define ICM_REG_XG_OFFS_USRH			0x03
 #define ICM_REG_ACCEL_CONFIG       		0x14
 #define ICM_REG_ACCEL_SMPLRT_DIV_1		0x10
 #define ICM_REG_ACCEL_SMPLRT_DIV_2		0x11
+
 
 #define BANK0 (0 << 4)
 #define BANK1 (1 << 4)
@@ -80,20 +74,18 @@ static void* _spi;
 static volatile bool _irq_from_device = false;
 static inv_sensor_listener_t _sensor_listener = { 0 };
 static uint8_t _freq_div;
-static bltr_imu_config_t _current_config = { 0 };
-static int16_t _gyro_bias[3] = { 0 };
+
+static bltr_imu_config_t _current_config;
 
 void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr);
 static void _init_dmp();
+static void _set_fsr_imu_mode_direct();
 static void _uninit_dmp();
 static void _inv_sensor_listener_event_cb(const inv_sensor_event_t * event, void * context);
 static uint16_t _gyro_fsr_enum_to_num(GyroFullscaleRange fsr);
 static GyroFullscaleRange _num_to_gyro_fsr_enum(uint16_t fsr);
 static uint16_t _acc_fsr_enum_to_num(AccFullscaleRange fsr);
 static AccFullscaleRange _num_to_acc_fsr_enum(uint16_t fsr);
-void _direct_mode_reset_imu();
-uint8_t _odr_to_closest_divider(uint32_t odr);
-void _set_gyro_calibration_values();
 
 // methods
 uint32_t bltr_invn_init(const bltr_invn_init_t* init)
@@ -109,22 +101,20 @@ uint32_t bltr_invn_init(const bltr_invn_init_t* init)
 	_enter_critical_section = init->enter_critical_section;
 	_leave_critical_section = init->leave_critical_section;
 	_spi = init->spi;
-	_current_config.mode = DISABLED;
 
 	_sensor_listener.event_cb = _inv_sensor_listener_event_cb;
 	_sensor_listener.context = _spi;
 
-	// TODO verify that "init" contains all what we need?
-	// TODO verify that IMU is physically connected, and return an error based on that
+	_init_dmp();
 
-	return BLTR_SUCCESS;
+	// TODO(tomer) verify that "init" contains all what we need?
+	// TODO(tomer) verify that IMU is physically connected, and return an error based on that
+
+	return 0;
 }
 
 uint32_t bltr_invn_start(const bltr_imu_config_t* config)
 {
-	if(config->mode == DISABLED)
-		return BLTR_IMU_ERROR_INVALID_CONFIG;
-
 	// verify fsr's
 
 	AccFullscaleRange real_acc_fsr = _num_to_acc_fsr_enum(config->acc_fsr);
@@ -137,161 +127,87 @@ uint32_t bltr_invn_start(const bltr_imu_config_t* config)
 	if(real_gyro_fsr == GYRO_FSR_INVALID)
 		return BLTR_IMU_ERROR_INVALID_CONFIG;
 
-	if(config->mode == DMP && (config->odr < 1 || config->odr > 200))
+	if(config->odr < 1 || config->odr > 200)
 		return BLTR_IMU_ERROR_INVALID_CONFIG;
 
-	if(config->mode == DIRECT && (config->odr < 1 || config->odr > 1100))
-		return BLTR_IMU_ERROR_INVALID_CONFIG;
-
-	// TODO check for allowed combinations of "config.data_types"
-
-	// check if we need to init/uninit the DMP
-	switch(config->mode)
-	{
-		case DISABLED:
-			break;
-		case DIRECT:
-		{
-			if(_current_config.mode == DMP)
-				_uninit_dmp();
-
-			// _odr_to_closest_divider should never return 0xFF (unsupported) here because we verified that odr <= 1100 previously
-			uint8_t div = _odr_to_closest_divider(config->odr);
-			_init_direct(div, (uint8_t)real_acc_fsr, (uint8_t)real_gyro_fsr);
-			
-			break;
-		}
-		case DMP:
-		{
-			if(_current_config.mode != DMP)
-				_init_dmp();
-
-			// NOTICE INV_ICM20649_SENSOR_RAW_ACCELEROMETER sets for both raw and regular
-			inv_device_set_sensor_config(_device, INV_ICM20649_SENSOR_RAW_ACCELEROMETER, INV_DEVICE_ICM20649_CONFIG_FSR, &config->acc_fsr, 0);
-
-			// NOTICE INV_ICM20649_SENSOR_RAW_GYROSCOPE sets for both raw and regular	
-			inv_device_set_sensor_config(_device, INV_ICM20649_SENSOR_RAW_GYROSCOPE, INV_DEVICE_ICM20649_CONFIG_FSR, &config->gyro_fsr, 0);	
-
-			// because of a bug in the invensense driver library, we have to enable both quaternion and accelerometer togheter, 
-			// otherwise it will ignore our ODR (sample rate) settings
-			if(config->data_types & BLTR_IMU_DATA_TYPE_QUATERNION || config->data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
-			{
-				inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR, 1000 / config->odr);
-				inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_ACCELEROMETER, 1000 / config->odr);
-				
-				inv_device_start_sensor(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR);
-				inv_device_start_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
-			}
-			
-			break;
-		}
-	}
+	// TODO(tomer) verify "config.odr"
+	// TODO(tomer) check for allowed combinations of "config.data_types"
 
 	_current_config = *config;
+
+	// TODO(tomer) implement the rest of the data types, and select the correct operation mode (dmp or direct) according to different combinations and rates
+
+	// NOTICE INV_ICM20649_SENSOR_RAW_ACCELEROMETER sets for both raw and regular
+	inv_device_set_sensor_config(_device, INV_ICM20649_SENSOR_RAW_ACCELEROMETER, INV_DEVICE_ICM20649_CONFIG_FSR, &_current_config.acc_fsr, 0);
+
+	// NOTICE INV_ICM20649_SENSOR_RAW_GYROSCOPE sets for both raw and regular	
+	inv_device_set_sensor_config(_device, INV_ICM20649_SENSOR_RAW_GYROSCOPE, INV_DEVICE_ICM20649_CONFIG_FSR, &_current_config.gyro_fsr, 0);	
+
+	// because of a bug in the invensense driver library, we have to enable both quaternion and accelerometer togheter, 
+	// otherwise it will ignore our ODR (sample rate) settings
+	if(_current_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION || _current_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
+	{
+		inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR, 1000 / _current_config.odr);
+		inv_device_set_sensor_period(_device, INV_SENSOR_TYPE_ACCELEROMETER, 1000 / _current_config.odr);
+		
+		inv_device_start_sensor(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR);
+		inv_device_start_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
+	}
 
 	return BLTR_SUCCESS;
 }
 
 uint32_t bltr_invn_stop()
 {
-	switch(_current_config.mode)
+	if(_current_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION || _current_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
 	{
-		case DISABLED:
-			break;
-		case DMP:
-		{
-			if(_current_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION || _current_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
-			{
-				inv_device_stop_sensor(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR);
-				inv_device_stop_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
-			}
-			break;
-		}
-		case DIRECT:
-		{
-			_enter_critical_section();
-			_direct_mode_reset_imu();
-			_leave_critical_section();
-			_current_config.mode = DISABLED;
-			break;
-		}
+		inv_device_stop_sensor(_device, INV_SENSOR_TYPE_GAME_ROTATION_VECTOR);
+		inv_device_stop_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
 	}
-	
-	return BLTR_SUCCESS;
-}
 
-void bltr_invn_set_gyro_bias(int16_t* bias)
-{
-	_gyro_bias[0] = bias[0];
-	_gyro_bias[1] = bias[1];
-	_gyro_bias[2] = bias[2];
+	return BLTR_IMU_ERROR_CRITICAL;
 }
 
 void bltr_invn_poll()
 {
-	switch(_current_config.mode)
-	{
-		case DISABLED:
-			break;
-		case DMP:
-		{
-			if(_irq_from_device)
-			{
-				_irq_from_device = false;
-				inv_device_poll(_device);
-			}
-
-			break;
-		}
-		case DIRECT:
-		{
-			// no need to pull in direct mode, because data reading takes place in interrupt, and then transfered to the application queue,
-			// which is then deqeued and exceuted from the main thead
-			break;
-		}
-	}
+	_irq_from_device = false;
+	inv_device_poll(_device);
+	
+	// no need to pull in direct mode, because data reading takes place in interrupt, and then transfered to the application queue,
+	// which is then deqeued and exceuted from the main thead
 }
 
 void bltr_invn_irq_handler()
 {
-	if(_current_config.mode == DMP)
-	{
-		_irq_from_device = true;
-	}
-	else if(_current_config.mode == DIRECT)
-	{
-		uint64_t timestamp = inv_icm20649_get_time_us();
+	_irq_from_device = true;
+
+	// uint64_t timestamp = inv_icm20649_get_time_us();
 	
-		// read data
-		uint8_t int_status = 0;
+	// // read data
+	// uint8_t buf[12];
+	// _enter_critical_section();	
+	// _read_reg(_spi, 0x1A, buf, 1);
 
-		_enter_critical_section();
+	// if(buf[0] & 0x01)	// RAW_DATA_0_RDY_INT
+	// 	_read_reg(_spi, ICM_REG_ACCEL_XOUT_H, buf, 12);	
 
-		_read_reg(_spi, 0x1A, &int_status, 1);
+	// _leave_critical_section();
 
-		uint8_t buf[12];
+	// // callback
+	// if(buf[0] & 0x01)
+	// {		
+	// 	bltr_imu_sensor_data_t sensor_data;
+	// 	sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_RAW;
+	// 	sensor_data.timestamp = timestamp;		
+	// 	sensor_data.raw.acceleration[0] = (buf[0] << 8) | buf[1];
+	// 	sensor_data.raw.acceleration[1] = (buf[2] << 8) | buf[3];
+	// 	sensor_data.raw.acceleration[2] = (buf[4] << 8) | buf[5];
+	// 	sensor_data.raw.gyroscope[0] = (buf[6] << 8) | buf[7];
+	// 	sensor_data.raw.gyroscope[1] = (buf[8] << 8) | buf[9];
+	// 	sensor_data.raw.gyroscope[2] = (buf[10] << 8) | buf[11];
 
-		if(int_status & 0x01)	// RAW_DATA_0_RDY_INT
-			_read_reg(_spi, ICM_REG_ACCEL_XOUT_H, buf, 12);	
-
-		_leave_critical_section();
-
-		// callback
-		if(int_status & 0x01)
-		{
-			bltr_imu_sensor_data_t sensor_data;
-			sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_RAW;
-			sensor_data.timestamp = timestamp;		
-			sensor_data.raw.acceleration[0] = (buf[0] << 8) | buf[1];
-			sensor_data.raw.acceleration[1] = (buf[2] << 8) | buf[3];
-			sensor_data.raw.acceleration[2] = (buf[4] << 8) | buf[5];
-			sensor_data.raw.gyroscope[0] = (buf[6] << 8) | buf[7];
-			sensor_data.raw.gyroscope[1] = (buf[8] << 8) | buf[9];
-			sensor_data.raw.gyroscope[2] = (buf[10] << 8) | buf[11];
-
-			_imu_irq_data_handler(&sensor_data);
-		}
-	}
+	// 	_imu_data_handler(&sensor_data);
+	// }
 }
 
 // static methods
@@ -299,21 +215,25 @@ void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr)
 {
 	_enter_critical_section();
 
-	_direct_mode_reset_imu();
+	// select bank 0
+	uint8_t data = BANK0;
+	_write_reg(_spi, ICM_REG_REG_BANK_SEL, &data, 1);
+	_delay_ms_func(15);
+
+	data = 0x80; // reset bit
+	_write_reg(_spi, ICM_REG_PWR_MGMT_1, &data, 1);
+
 	_delay_ms_func(150);
-	
+
 	// no need to select bank again because the default after reset is BANK0
 
 	uint8_t whoami = 0xff;
 	_read_reg(_spi, ICM_REG_WHO_AM_I, &whoami, 1);
 
 	if(whoami != 0xE1)
-	{
-		_leave_critical_section();
 		return;
-	}
 
-	uint8_t data = 0x01; // Auto selects the best available clock source – PLL if ready, else use the Internal oscillator 6 Internal 20 MHz oscillator
+	data = 0x01; // Auto selects the best available clock source – PLL if ready, else use the Internal oscillator 6 Internal 20 MHz oscillator
 	_write_reg(_spi, ICM_REG_PWR_MGMT_1, &data, 1);
 	_delay_ms_func(15);
 
@@ -352,8 +272,6 @@ void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr)
 	_write_reg(_spi, ICM_REG_ACCEL_SMPLRT_DIV_2, &data, 1);
 	_delay_ms_func(100);
 
-	_set_gyro_calibration_values();
-	
 	// select bank 0
 	data = BANK0;
 	_write_reg(_spi, ICM_REG_REG_BANK_SEL, &data, 1);
@@ -369,44 +287,7 @@ void _init_direct(uint8_t div, uint8_t acc_fsr, uint8_t gyro_fsr)
 	_leave_critical_section();
 }
 
-uint8_t _odr_to_closest_divider(uint32_t odr)
-{
-	for(int i = 7; i >= 0 ; i--)
-	{
-		if(odr <= 1100.0f / (1 + i))
-			return i;
-	}
-
-	return 0xFF;
-}
-
-void _direct_mode_reset_imu()
-{
-	// select bank 0
-	uint8_t data = BANK0;
-	_write_reg(_spi, ICM_REG_REG_BANK_SEL, &data, 1);
-
-	data = 0x80; // reset bit
-	_write_reg(_spi, ICM_REG_PWR_MGMT_1, &data, 1);
-}
-
-void _set_gyro_calibration_values()
-{
-	uint8_t data = BANK2;
-	_write_reg(_spi, ICM_REG_REG_BANK_SEL, &data, 1);
-	_delay_ms_func(15);
-
-	uint8_t bias_data[6];
-	bias_data[0] = (_gyro_bias[0] >> 8) & 0xFF;
-    bias_data[1] = (_gyro_bias[0]) & 0xFF;
-    bias_data[2] = (_gyro_bias[1] >> 8) & 0xFF;
-    bias_data[3] = (_gyro_bias[1]) & 0xFF;
-    bias_data[4] = (_gyro_bias[2] >> 8) & 0xFF;
-    bias_data[5] = (_gyro_bias[2]) & 0xFF;
-
-	_write_reg(_spi, ICM_REG_XG_OFFS_USRH, bias_data, 6);
-}
-
+// Make sure to disable ICM interrupts before calling this method
 static void _init_dmp()
 {
 	inv_serif_hal_t serif_spi_instance =
@@ -421,11 +302,6 @@ static void _init_dmp()
 
 	_enter_critical_section();
 
-	_direct_mode_reset_imu();
-	_delay_ms_func(150);
-
-	//_set_gyro_calibration_values();
-
 	inv_device_icm20649_init2(&_device_icm20649, &serif_spi_instance, &_sensor_listener, dmp3_image, sizeof(dmp3_image));
 	_device = inv_device_icm20649_get_base(&_device_icm20649);
 
@@ -434,8 +310,6 @@ static void _init_dmp()
 
 	// calling this should apply the same mouting matrix for all sensors
 	inv_device_set_sensor_mounting_matrix(_device, INV_ICM20649_SENSOR_RAW_GYROSCOPE, _icm_mounting_matrix);
-
-	_set_gyro_calibration_values();
 
 	uint8_t is_high_power = 1;
 	inv_device_set_sensor_config(_device, 0, INV_DEVICE_ICM20649_CONFIG_POWER_MODE, &is_high_power, 0);
