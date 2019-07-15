@@ -116,7 +116,7 @@ SRC_FILES += \
   $(APP_DIR)/messages/bluetera_messages.c \
   $(APP_DIR)/services/bus/ble_bus.c \
   $(APP_DIR)/modules/imu/imu_manager.c \
-  $(APP_DIR)/main.c
+  $(APP_DIR)/main.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
