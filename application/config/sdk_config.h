@@ -5770,7 +5770,7 @@
 // <e> APP_SDCARD_ENABLED - app_sdcard - SD/MMC card support using SPI
 //==========================================================
 #ifndef APP_SDCARD_ENABLED
-#define APP_SDCARD_ENABLED 0
+#define APP_SDCARD_ENABLED 1
 #endif
 // <o> APP_SDCARD_SPI_INSTANCE  - SPI instance used
  

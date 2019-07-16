@@ -69,9 +69,11 @@
 
 #include "bluetera_boards.h"
 #include "imu_manager.h"
+#include "sd_card_manager.h"
 #include "bluetera_messages.h"
 #include "utils.h"
 #include "bluetera_constants.h"
+#include "bluetera_config.h"
 
 // The advertising interval (in units of 0.625 ms)
 #define	APP_ADV_INTERVAL 					300
@@ -143,9 +145,11 @@ APP_TIMER_DEF(_led_timer_id);
 #define SCHED_MAX_EVENT_DATA_SIZE		MAX(32, sizeof(ble_evt_t))
 #define SCHED_QUEUE_SIZE				256
 
-// handle of the current connection
+// fields
 static uint16_t _conn_handle = BLE_CONN_HANDLE_INVALID;
+static bluetera_data_sink_type_t _imu_data_sink = BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_BLE;
 
+// static methods
 static void timers_init();
 static void ble_stack_init();
 static void gap_params_init();
@@ -213,11 +217,16 @@ int main()
 
 	// IMU initialization
 	nrf_delay_ms(1000);		// account for IMU wakeup delay
-
 	bltr_imu_init_t imu_init = { 0 };
 	imu_init.imu_data_handler = imu_data_handler;
 	bltr_imu_init(&imu_init);
 	
+	// SD card manager
+#if BLTR_SD_CARD_ENABLED
+	bltr_sd_card_init_t sd_card_init = { 0 };	// currenlty - no card insert/remove handlers
+	bltr_sd_card_init(&sd_card_init);
+#endif
+
 	// go!
 	advertising_start(false);
 
@@ -627,8 +636,20 @@ static void advertising_init()
 // synced with main thread
 static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 {
-	if (_conn_handle != BLE_CONN_HANDLE_INVALID)
-		bltr_msg_send_sensor_data(data);
+	switch(_imu_data_sink)
+	{
+		case BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_BLE:
+			if (_conn_handle != BLE_CONN_HANDLE_INVALID)
+				bltr_msg_send_sensor_data(data);
+			break;
+
+		case BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_SDCARD:
+			bltr_sd_card_handle_imu_sensor_data(data);
+			break;
+
+		default:
+		break;
+	}	
 }
 
 // synced with scheduler
@@ -638,46 +659,7 @@ static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 	bltr_imu_stop();
 }
 
-// Bluetera uplink message handler
-static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
-{
-	NRF_LOG_DEBUG("bluetera_uplink_message_handler(): msg->which_payload = %d", msg->which_payload);
-
-	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
-	bluetera_bluetera_modules_type_t module = BLUETERA_BLUETERA_MODULES_TYPE_SYSTEM;
-	switch(msg->which_payload)
-	{
-		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
-			err = bltr_msg_send_echo(msg->payload.echo.value);
-			break;
-
-		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
-			module = BLUETERA_BLUETERA_MODULES_TYPE_IMU;
-			err = bltr_imu_handle_uplink_message(msg);
-			break;
-
-		default:
-			/* no action */
-			break;
-	}
-
-	if(err != BLTR_SUCCESS)
-	{
-		NRF_LOG_WARNING("bluetera_uplink_message_handler() failed: module = %d, code = %d", module, err);
-		bltr_msg_send_error(module, err);
-	}
-}
-
-static ret_code_t bluetera_messages_init()
-{
-	bltr_msg_init_t context = 
-	{
-		.message_handler = bluetera_uplink_message_handler
-	};
-
-	return bltr_msg_init(&context); 
-}
-
+// DFU routines
 static bool app_shutdown_handler(nrf_pwr_mgmt_evt_t event)
 {
     switch (event)
@@ -792,3 +774,60 @@ static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event)
             break;
     }
 }
+
+
+// Bluetera uplink message handler
+static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
+{
+	NRF_LOG_DEBUG("bluetera_uplink_message_handler(): msg->which_payload = %d", msg->which_payload);
+
+	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
+	bluetera_bluetera_modules_type_t module = BLUETERA_BLUETERA_MODULES_TYPE_SYSTEM;
+	switch(msg->which_payload)
+	{
+		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
+			err = bltr_msg_send_echo(msg->payload.echo.value);
+			break;
+
+		case BLUETERA_UPLINK_MESSAGE_IMU_TAG:
+		{
+			// configure IMU data sink
+			const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&msg->payload.imu;
+			if(cmd->which_payload == BLUETERA_IMU_COMMAND_START_TAG)
+				_imu_data_sink = cmd->payload.start.data_sink;
+
+			// pass to SD-card module, as it could be the sink of the IMU data
+			module = BLUETERA_BLUETERA_MODULES_TYPE_SDCARD;
+			err = bltr_sd_card_handle_uplink_message(msg);
+
+			// pass to IMU module
+			if(err == BLTR_SUCCESS)
+			{
+				module = BLUETERA_BLUETERA_MODULES_TYPE_IMU;
+				err = bltr_imu_handle_uplink_message(msg);
+			}
+		}
+			break;
+
+		default:
+			/* no action */
+			break;
+	}
+
+	if(err != BLTR_SUCCESS)
+	{
+		NRF_LOG_WARNING("bluetera_uplink_message_handler() failed: module = %d, code = %d", module, err);
+		bltr_msg_send_error(module, err);
+	}
+}
+
+static ret_code_t bluetera_messages_init()
+{
+	bltr_msg_init_t context = 
+	{
+		.message_handler = bluetera_uplink_message_handler
+	};
+
+	return bltr_msg_init(&context); 
+}
+

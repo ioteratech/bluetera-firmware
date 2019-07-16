@@ -39,6 +39,9 @@ ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data);
 ret_code_t bltr_msg_send_echo(uint32_t value);
 ret_code_t bltr_msg_send_error(bluetera_bluetera_modules_type_t module, uint32_t code);
 
+// helper methods
+ret_code_t bltr_msg_encode_downlink_message(const bluetera_downlink_message_t* msg, uint8_t* target, uint16_t* bytes_written);
+ret_code_t bltr_msg_imu_sensor_data_to_downlink_message(const bltr_imu_sensor_data_t* data, bluetera_downlink_message_t* message);
 
 void bltr_msg_debug();
 

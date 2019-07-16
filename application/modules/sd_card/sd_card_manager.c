@@ -22,6 +22,8 @@
 	SOFTWARE.
 */
 
+#include "bluetera_config.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <nrf_block_dev_sdc.h>
@@ -32,10 +34,11 @@
 #include <ff.h>
 #include <diskio_blkdev.h>
 
+#include "bluetera_err.h"
 #include "sd_card_manager.h"
 #include "bluetera_boards.h"
-#include "bluetera_config.h"
 
+#if BLTR_SD_CARD_ENABLED
 #define DISK_INIT_RETRIES	3
 #define DEBOUCE_INTERVAL 	APP_TIMER_TICKS(500)
 #define LOG_DIR				"/"
@@ -82,6 +85,7 @@ static bltr_sd_card_status_handler_t _sd_card_status_handler = NULL;
 static bool _is_card_present;
 static bool _is_module_initialized;
 static bool _is_file_open;
+static bool _should_log_imu_data;
 static int _num_writes;
 
 // static methods
@@ -100,7 +104,9 @@ void bltr_sd_card_init(const bltr_sd_card_init_t* init)
 	_sd_card_status_handler = init->sd_card_status_handler;	
 	_is_module_initialized = false;
 	_is_file_open = false;	
+	_should_log_imu_data = false;
 	_num_writes = 0;	
+	
 	diskio_blockdev_register(_drives, ARRAY_SIZE(_drives));
 
 #if BLTR_SD_CARD_DETECT_CARD_ENABLED
@@ -118,6 +124,56 @@ void bltr_sd_card_init(const bltr_sd_card_init_t* init)
 #endif		
 }
 
+ret_code_t bltr_sd_card_handle_uplink_message(const bluetera_uplink_message_t* message)
+{
+	// IMU start command may define the SD as its data sink - if so, we create a new file for the data
+	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
+		return BLTR_SUCCESS;
+	
+	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
+	if(cmd->which_payload != BLUETERA_IMU_COMMAND_START_TAG)
+		return BLTR_SUCCESS;
+
+	ret_code_t err = BLTR_SUCCESS;	
+	_should_log_imu_data = (cmd->payload.start.data_sink == BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_SDCARD);
+
+	if(_should_log_imu_data)
+	{
+		NRF_LOG_INFO("bltr_sd_card_handle_uplink_message() - configuring SD card as IMU sink");
+		err = bltr_sd_card_open_log();
+	}
+
+	return err;
+}
+
+ret_code_t bltr_sd_card_handle_imu_sensor_data(const bltr_imu_sensor_data_t* data) 
+{
+	if(!_should_log_imu_data)
+		return BLTR_SUCCESS;
+
+	// to downlink message
+	ret_code_t err;
+	bluetera_downlink_message_t message;
+	err = bltr_msg_imu_sensor_data_to_downlink_message(data, &message);
+	BLTR_RETURN_CODE_IF_ERROR(err);
+
+	// encode 
+	uint16_t bytes_written = 0;
+	uint8_t buffer[BLTR_MAX_DOWNLINK_MESSAGE_SIZE];
+	err = bltr_msg_encode_downlink_message(&message, buffer, &bytes_written);
+	BLTR_RETURN_CODE_IF_ERROR(err);
+
+	// write
+	err = bltr_sd_card_write_log(buffer, bytes_written);
+	if(err != BLTR_SUCCESS)
+	{
+		_deinit_module();
+		return err;
+	}
+
+	return BLTR_SUCCESS;
+}
+
 ret_code_t bltr_sd_card_open_log()
 {
 	// validate state
@@ -128,19 +184,13 @@ ret_code_t bltr_sd_card_open_log()
 	if(!_is_module_initialized)
 	{
 		if(!_try_init_module())
-		{
-			_deinit_module();
-			return BLTR_SD_CARD_ERROR_INIT_FAILED;
-		}
+			goto init_failed;		// yes, it is actually good practice to use 'goto' here. See https://stackoverflow.com/a/245761/499721
 	}
 
 	// open file
 	uint16_t index = 0;
 	if(!_try_get_last_log_index(&index))
-	{
-		_deinit_module();
-		return BLTR_SD_CARD_ERROR_INIT_FAILED;
-	}
+		goto init_failed;
 
 	char filename[64] = { 0 };
 	int len = strlen(_log_filename);
@@ -151,14 +201,18 @@ ret_code_t bltr_sd_card_open_log()
     if (result != FR_OK)
     {
         NRF_LOG_INFO("unable to open or create file: %s, reason: %d", filename, result);
-		_deinit_module();
-        return BLTR_SD_CARD_ERROR_INIT_FAILED;
+		goto init_failed;
     }
 
-	NRF_LOG_DEBUG("new log created: %s", filename);    
+	NRF_LOG_INFO("new log created: %s", filename);    
 
 	_is_file_open = true;
 	return BLTR_SUCCESS;
+
+// init failed - deinit module and return error code
+init_failed:
+	_deinit_module();
+	return BLTR_SD_CARD_ERROR_INIT_FAILED;
 }
 
 ret_code_t bltr_sd_card_close_log()
@@ -179,19 +233,19 @@ ret_code_t bltr_sd_card_write_log(uint8_t* data, uint16_t len)
 		return BLTR_SD_CARD_ERROR_INVALID_STATE;
 
 	// write
-	ret_code_t status = BLTR_SUCCESS;
+	ret_code_t err = BLTR_SUCCESS;
 	UINT bytes_written;
 	FRESULT result = f_write(&_file, data, len, (UINT*)&bytes_written);
 
 	if(result != FR_OK)
-		status = (bytes_written < len) ? BLTR_SD_CARD_ERROR_CARD_FULL : BLTR_SD_CARD_ERROR_WRITE_FAILED;
+		err = (bytes_written < len) ? BLTR_SD_CARD_ERROR_CARD_FULL : BLTR_SD_CARD_ERROR_WRITE_FAILED;
 
 	// flush
 	_num_writes++;
 	if((_num_writes % BLTR_SD_CARD_FLUSH_INTERVAL) == 0)
 		_flush();
 
-	return status;
+	return err;
 }
 
 bool bltr_sd_card_is_present()
@@ -363,3 +417,31 @@ static void _synced_debounce_handler(void* p_event_data, uint16_t event_size)
 	if(_sd_card_status_handler != NULL)
 		_sd_card_status_handler(_is_card_present);
 }
+
+#else // #if BLTR_SD_CARD_ENABLED
+
+void bltr_sd_card_init(const bltr_sd_card_init_t* init) { /* ignore */}
+
+ret_code_t bltr_sd_card_handle_uplink_message(const bluetera_uplink_message_t* message)
+{
+	if(message->which_payload != BLUETERA_UPLINK_MESSAGE_IMU_TAG)
+		return BLTR_SUCCESS;
+	
+	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
+	if(cmd->which_payload != BLUETERA_IMU_COMMAND_START_TAG)
+		return BLTR_SUCCESS;
+
+	if(cmd->payload.start.data_sink == BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_SDCARD)
+		return BLTR_SD_CARD_ERROR_UNSUPPORTED;
+
+	return BLTR_SUCCESS;	
+}
+
+ret_code_t bltr_sd_card_imu_data_handler(const bltr_imu_sensor_data_t* data) { return BLTR_SUCCESS; }
+
+ret_code_t bltr_sd_card_open_log() { return BLTR_SD_CARD_ERROR_UNSUPPORTED; }
+ret_code_t bltr_sd_card_close_log() { return BLTR_SD_CARD_ERROR_UNSUPPORTED; }
+ret_code_t bltr_sd_card_write_log(uint8_t* data, uint16_t len) { return BLTR_SD_CARD_ERROR_UNSUPPORTED; }
+bool bltr_sd_card_is_inserted() { return false; }
+
+#endif // #if BLTR_SD_CARD_ENABLED

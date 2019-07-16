@@ -97,6 +97,7 @@
 
 
 /* SD card */
+/* don't forget to also change SD-card defines in sdk_config.h (APP_SDCARD_ENABLED 1) */
 #ifndef BLTR_SD_CARD_ENABLED
 #define BLTR_SD_CARD_ENABLED 1
 #endif

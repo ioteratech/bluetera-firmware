@@ -39,6 +39,9 @@ typedef struct
 } bltr_sd_card_init_t;
 
 void bltr_sd_card_init(const bltr_sd_card_init_t* init);
+ret_code_t bltr_sd_card_handle_uplink_message(const bluetera_uplink_message_t* message);
+ret_code_t bltr_sd_card_handle_imu_sensor_data(const bltr_imu_sensor_data_t* data);			// TODO: replace with a more generic handling of messages / events
+
 ret_code_t bltr_sd_card_open_log();
 ret_code_t bltr_sd_card_close_log();
 ret_code_t bltr_sd_card_write_log(uint8_t* data, uint16_t len);

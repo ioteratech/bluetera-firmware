@@ -60,44 +60,12 @@ ret_code_t bltr_msg_init(const bltr_msg_init_t* init)
 }
 
 ret_code_t bltr_msg_send_sensor_data(const bltr_imu_sensor_data_t* data)
-{
-	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
+{	
 	bluetera_downlink_message_t message;
+	ret_code_t err = bltr_msg_imu_sensor_data_to_downlink_message(data, &message);
+	BLTR_RETURN_CODE_IF_ERROR(err);
 
-	switch (data->sensor)
-	{
-		case BLTR_IMU_SENSOR_TYPE_ACCELEROMETER:
-			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
-			message.payload.acceleration.timestamp = (uint32_t)(data->timestamp / 1000.0f);
-			message.payload.acceleration.has_timestamp = true;
-			message.payload.acceleration.x = data->acceleration[0];
-			message.payload.acceleration.has_x = true;
-			message.payload.acceleration.y = data->acceleration[1];
-			message.payload.acceleration.has_y = true;
-			message.payload.acceleration.z = data->acceleration[2];
-			message.payload.acceleration.has_z = true;
-			err = _try_send_message(&message);
-			break;
-	
-		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
-			message.which_payload = BLUETERA_DOWNLINK_MESSAGE_QUATERNION_TAG;
-			message.payload.quaternion.timestamp = (uint32_t)(data->timestamp / 1000.0f);
-			message.payload.quaternion.has_timestamp = true;
-			message.payload.quaternion.w = data->quaternion[0];
-			message.payload.quaternion.has_w = true;
-			message.payload.quaternion.x = data->quaternion[1];
-			message.payload.quaternion.has_x = true;
-			message.payload.quaternion.y = data->quaternion[2];
-			message.payload.quaternion.has_y = true;
-			message.payload.quaternion.z = data->quaternion[3];
-			message.payload.quaternion.has_z = true;
-			err = _try_send_message(&message);
-			break;
-
-		default:
-			break;
-	}
-
+	err = _try_send_message(&message);
 	return err;
 }
 
@@ -129,6 +97,20 @@ ret_code_t bltr_msg_send_error(bluetera_bluetera_modules_type_t module, uint32_t
 	return err;
 }
 
+ret_code_t bltr_msg_encode_downlink_message(const bluetera_downlink_message_t* msg, uint8_t* target, uint16_t* bytes_written)
+{
+	pb_ostream_t ostream = pb_ostream_from_buffer(target, BLTR_MAX_DOWNLINK_MESSAGE_SIZE);
+	if(!pb_encode_delimited(&ostream, bluetera_downlink_message_fields, msg) || (ostream.bytes_written == 0))
+	{
+		NRF_LOG_ERROR("bltr_msg_encode_downlink_message() - pb_encode_delimited() failed with error: %s", PB_GET_ERROR(ostream));
+		return BLTR_MSG_ERROR_OP_FAILED;
+	}
+
+	*bytes_written = ostream.bytes_written;
+
+	return BLTR_SUCCESS;
+}
+
 static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 {	
 	ASSERT(message != NULL);
@@ -140,15 +122,12 @@ static ret_code_t _try_send_message(const bluetera_downlink_message_t* message)
 		return BLTR_MSG_ERROR_NO_TRANSPORT;
 		
 	// encode message
-	pb_ostream_t ostream = pb_ostream_from_buffer(_obuffer, sizeof(_obuffer));	
-	if(!pb_encode_delimited(&ostream, bluetera_downlink_message_fields, message) || (ostream.bytes_written == 0))
-	{
-		NRF_LOG_ERROR("_try_send_message() - pb_encode_delimited() failed with error: %s", PB_GET_ERROR(ostream));
-		return BLTR_MSG_ERROR_OP_FAILED;
-	}
+	uint16_t data_length;
+	err_code = bltr_msg_encode_downlink_message(message, _obuffer, &data_length);
+	if(err_code != BLTR_SUCCESS)
+		return err_code;
 
 	// send message (will fail if not enough space)	
-	uint16_t data_length = ostream.bytes_written;
 	//NRF_LOG_HEXDUMP_INFO(_obuffer, data_length);
 	err_code = ble_bus_data_send(&_bus, _obuffer, &data_length);
 
@@ -222,4 +201,44 @@ static void _on_ble_event(ble_evt_t const * p_ble_evt, void* p_context)
 		NRF_LOG_INFO("_on_ble_event() - disconnected");
 		_can_send_message = false;
 	}
+}
+
+ret_code_t bltr_msg_imu_sensor_data_to_downlink_message(const bltr_imu_sensor_data_t* data, bluetera_downlink_message_t* message)
+{
+	ret_code_t err = BLTR_SUCCESS;
+
+	switch (data->sensor)
+	{
+		case BLTR_IMU_SENSOR_TYPE_ACCELEROMETER:
+			message->which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG;
+			message->payload.acceleration.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message->payload.acceleration.has_timestamp = true;
+			message->payload.acceleration.x = data->acceleration[0];
+			message->payload.acceleration.has_x = true;
+			message->payload.acceleration.y = data->acceleration[1];
+			message->payload.acceleration.has_y = true;
+			message->payload.acceleration.z = data->acceleration[2];
+			message->payload.acceleration.has_z = true;
+			break;
+	
+		case BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR:
+			message->which_payload = BLUETERA_DOWNLINK_MESSAGE_QUATERNION_TAG;
+			message->payload.quaternion.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message->payload.quaternion.has_timestamp = true;
+			message->payload.quaternion.w = data->quaternion[0];
+			message->payload.quaternion.has_w = true;
+			message->payload.quaternion.x = data->quaternion[1];
+			message->payload.quaternion.has_x = true;
+			message->payload.quaternion.y = data->quaternion[2];
+			message->payload.quaternion.has_y = true;
+			message->payload.quaternion.z = data->quaternion[3];
+			message->payload.quaternion.has_z = true;
+			break;
+
+		default:
+			err = BLTR_MSG_ERROR_UNSUPPORTED;
+			break;
+	}
+
+	return err;	
 }

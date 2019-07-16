@@ -35,6 +35,19 @@ extern "C" {
 #define BLTR_SD_CARD_ERROR_INIT_FAILED		(BLTR_SD_CARD_ERR_BASE+1)
 #define BLTR_SD_CARD_ERROR_WRITE_FAILED		(BLTR_SD_CARD_ERR_BASE+2)
 #define BLTR_SD_CARD_ERROR_CARD_FULL		(BLTR_SD_CARD_ERR_BASE+3)
+#define BLTR_SD_CARD_ERROR_UNSUPPORTED		(BLTR_SD_CARD_ERR_BASE+4)
+
+
+// utility macros
+#define BLTR_RETURN_CODE_IF_ERROR(ERR_CODE)        	\
+    do                                              \
+    {                                               \
+        const uint32_t LOCAL_ERR_CODE = (ERR_CODE);	\
+        if (LOCAL_ERR_CODE != BLTR_SUCCESS)         \
+        {                                           \
+            return (ERR_CODE);              		\
+        }                                           \
+    } while (0)
 
 #ifdef __cplusplus
 }
