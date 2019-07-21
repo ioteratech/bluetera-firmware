@@ -656,7 +656,9 @@ static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 static void on_ble_disconnected(void* p_event_data, uint16_t event_size)
 {
 	// p_event_data should be always null here and event_size is always 0
-	bltr_imu_stop();
+
+	if(_imu_data_sink == BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_BLE)
+		bltr_imu_stop();
 }
 
 // DFU routines
