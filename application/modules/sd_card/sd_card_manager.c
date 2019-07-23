@@ -37,6 +37,7 @@
 #include "bluetera_err.h"
 #include "sd_card_manager.h"
 #include "bluetera_boards.h"
+#include "utils.h"
 
 #if BLTR_SD_CARD_ENABLED
 #define DISK_INIT_RETRIES	3
@@ -86,7 +87,7 @@ static bool _is_card_present;
 static bool _is_module_initialized;
 static bool _is_file_open;
 static bool _should_log_imu_data;
-static int _num_writes;
+static uint64_t _last_flush;
 
 // static methods
 static bool _try_init_module();
@@ -105,8 +106,8 @@ void bltr_sd_card_init(const bltr_sd_card_init_t* init)
 	_is_module_initialized = false;
 	_is_file_open = false;	
 	_should_log_imu_data = false;
-	_num_writes = 0;	
-	
+	_last_flush = 0;
+
 	diskio_blockdev_register(_drives, ARRAY_SIZE(_drives));
 
 #if BLTR_SD_CARD_DETECT_CARD_ENABLED
@@ -230,6 +231,8 @@ ret_code_t bltr_sd_card_open_log()
 	NRF_LOG_INFO("new log created: %s", filename);    
 
 	_is_file_open = true;
+	_last_flush = bltr_utils_get_timestamp();
+
 	return BLTR_SUCCESS;
 
 // init failed - deinit module and return error code
@@ -265,11 +268,14 @@ ret_code_t bltr_sd_card_write_log(uint8_t* data, uint16_t len)
 	if(result != FR_OK)
 		err = (bytes_written < len) ? BLTR_SD_CARD_ERROR_CARD_FULL : BLTR_SD_CARD_ERROR_WRITE_FAILED;
 
-	// flush
-	_num_writes++;
+	uint64_t now = bltr_utils_get_timestamp();
+	float dt = (now - _last_flush) / 1e6f;
 
-	if((_num_writes % BLTR_SD_CARD_FLUSH_INTERVAL) == 0)
+	if(dt >= BLTR_SD_CARD_FLUSH_INTERVAL)
+	{
 		_flush();
+		_last_flush = now;
+	}
 
 	return err;
 }
@@ -351,6 +357,8 @@ void _flush()
 		return;
 
 	FRESULT result = f_sync(&_file);
+
+	NRF_LOG_INFO("1234flushed");
 
 	if(result != FR_OK)
 		NRF_LOG_INFO("f_sync error: %d", result);

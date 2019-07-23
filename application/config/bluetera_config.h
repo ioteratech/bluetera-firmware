@@ -122,8 +122,9 @@
 #define BLTR_SD_CARD_DETECT_CARD_ENABLED 1
 #endif
 
+// flush interval in units of seconds
 #ifndef BLTR_SD_CARD_FLUSH_INTERVAL
-#define BLTR_SD_CARD_FLUSH_INTERVAL 4096
+#define BLTR_SD_CARD_FLUSH_INTERVAL 5
 #endif
 
 
