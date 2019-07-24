@@ -358,8 +358,6 @@ void _flush()
 
 	FRESULT result = f_sync(&_file);
 
-	NRF_LOG_INFO("1234flushed");
-
 	if(result != FR_OK)
 		NRF_LOG_INFO("f_sync error: %d", result);
 }
