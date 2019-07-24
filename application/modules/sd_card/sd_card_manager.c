@@ -37,6 +37,7 @@
 #include "bluetera_err.h"
 #include "sd_card_manager.h"
 #include "bluetera_boards.h"
+#include "utils.h"
 
 #if BLTR_SD_CARD_ENABLED
 #define DISK_INIT_RETRIES	3
@@ -86,7 +87,7 @@ static bool _is_card_present;
 static bool _is_module_initialized;
 static bool _is_file_open;
 static bool _should_log_imu_data;
-static int _num_writes;
+static uint64_t _last_flush;
 
 // static methods
 static bool _try_init_module();
@@ -105,8 +106,8 @@ void bltr_sd_card_init(const bltr_sd_card_init_t* init)
 	_is_module_initialized = false;
 	_is_file_open = false;	
 	_should_log_imu_data = false;
-	_num_writes = 0;	
-	
+	_last_flush = 0;
+
 	diskio_blockdev_register(_drives, ARRAY_SIZE(_drives));
 
 #if BLTR_SD_CARD_DETECT_CARD_ENABLED
@@ -131,16 +132,32 @@ ret_code_t bltr_sd_card_handle_uplink_message(const bluetera_uplink_message_t* m
 		return BLTR_SUCCESS;
 	
 	const bluetera_imu_command_t* cmd = (const bluetera_imu_command_t*)&message->payload.imu;
-	if(cmd->which_payload != BLUETERA_IMU_COMMAND_START_TAG)
-		return BLTR_SUCCESS;
+	ret_code_t err = BLTR_SUCCESS;
 
-	ret_code_t err = BLTR_SUCCESS;	
-	_should_log_imu_data = (cmd->payload.start.data_sink == BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_SDCARD);
-
-	if(_should_log_imu_data)
+	switch(cmd->which_payload)
 	{
-		NRF_LOG_INFO("bltr_sd_card_handle_uplink_message() - configuring SD card as IMU sink");
-		err = bltr_sd_card_open_log();
+		case BLUETERA_IMU_COMMAND_START_TAG:
+		{
+			_should_log_imu_data = (cmd->payload.start.data_sink == BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_SDCARD);
+
+			if(_should_log_imu_data)
+			{
+				NRF_LOG_INFO("bltr_sd_card_handle_uplink_message() - configuring SD card as IMU sink");
+				err = bltr_sd_card_open_log();
+			}
+
+			break;
+		}
+		case BLUETERA_IMU_COMMAND_STOP_TAG:
+		{
+			if(_is_file_open)
+				err = bltr_sd_card_close_log();
+
+			break;
+		}
+		default:
+			err = BLTR_SUCCESS;
+			break;
 	}
 
 	return err;
@@ -165,9 +182,12 @@ ret_code_t bltr_sd_card_handle_imu_sensor_data(const bltr_imu_sensor_data_t* dat
 
 	// write
 	err = bltr_sd_card_write_log(buffer, bytes_written);
+
 	if(err != BLTR_SUCCESS)
 	{
-		_deinit_module();
+		if(_is_file_open)
+			_deinit_module();
+		
 		return err;
 	}
 
@@ -192,10 +212,14 @@ ret_code_t bltr_sd_card_open_log()
 	if(!_try_get_last_log_index(&index))
 		goto init_failed;
 
+ 	// we want to create a new log file, so increase the LOG file with the biggest number by 1
+	index++;
+
 	char filename[64] = { 0 };
 	int len = strlen(_log_filename);
 	memcpy(filename, _log_filename, len);
-	snprintf(filename + len, sizeof(filename) - len, "%d", index + 1);
+	
+	snprintf(filename + len, sizeof(filename) - len, "%d", index);
 
     FRESULT result = f_open(&_file, filename, FA_READ | FA_WRITE | FA_CREATE_NEW);
     if (result != FR_OK)
@@ -207,6 +231,8 @@ ret_code_t bltr_sd_card_open_log()
 	NRF_LOG_INFO("new log created: %s", filename);    
 
 	_is_file_open = true;
+	_last_flush = bltr_utils_get_timestamp();
+
 	return BLTR_SUCCESS;
 
 // init failed - deinit module and return error code
@@ -219,6 +245,8 @@ ret_code_t bltr_sd_card_close_log()
 {
 	if(!_is_file_open)
 		return BLTR_SUCCESS;
+
+	NRF_LOG_INFO("closing file");
 
 	f_close(&_file);
 	_deinit_module();
@@ -240,10 +268,14 @@ ret_code_t bltr_sd_card_write_log(uint8_t* data, uint16_t len)
 	if(result != FR_OK)
 		err = (bytes_written < len) ? BLTR_SD_CARD_ERROR_CARD_FULL : BLTR_SD_CARD_ERROR_WRITE_FAILED;
 
-	// flush
-	_num_writes++;
-	if((_num_writes % BLTR_SD_CARD_FLUSH_INTERVAL) == 0)
+	uint64_t now = bltr_utils_get_timestamp();
+	float dt = (now - _last_flush) / 1e6f;
+
+	if(dt >= BLTR_SD_CARD_FLUSH_INTERVAL)
+	{
 		_flush();
+		_last_flush = now;
+	}
 
 	return err;
 }
@@ -264,7 +296,7 @@ bool _try_init_module()
 	// check SD card presense
 	if(!bltr_sd_card_is_present())
 	{
-		NRF_LOG_DEBUG("SD card missing");
+		NRF_LOG_INFO("SD card missing");
 		return false;
 	}
 
@@ -276,35 +308,36 @@ bool _try_init_module()
     
     if (disk_state)
     {
-        NRF_LOG_DEBUG("disk initialization failed.");
+        NRF_LOG_INFO("disk initialization failed.");
         return false;
     }
 
-	NRF_LOG_DEBUG("disk initialized");
+	NRF_LOG_INFO("disk initialized");
 
 	// initialize FatFS (mounting)
 	uint32_t blocks_per_mb = (1024uL * 1024uL) / _block_dev_sdc.block_dev.p_ops->geometry(&_block_dev_sdc.block_dev)->blk_size;
     uint32_t capacity = _block_dev_sdc.block_dev.p_ops->geometry(&_block_dev_sdc.block_dev)->blk_count / blocks_per_mb;
-    NRF_LOG_DEBUG("mounting volume. Capacity: %d MB", capacity);
+    NRF_LOG_INFO("mounting volume. Capacity: %d MB", capacity);
     FRESULT result = f_mount(&_filesystem, "", 1);
 	
     if (result)
     {
-        NRF_LOG_DEBUG("mount failed: %d", result);
+        NRF_LOG_INFO("mount failed: %d", result);
 		disk_uninitialize(0);
         return false;
     }
 
-	NRF_LOG_DEBUG("mounted volume...");
+	NRF_LOG_INFO("mounted volume...");
 
 	// done
 	_is_module_initialized = true;
+	
 	return true;
 }
 
 void _deinit_module()
 {
-	NRF_LOG_DEBUG("deinitializing module");
+	NRF_LOG_INFO("deinitializing module");
 
 	// deinitialize FatFS (unmounting), ignoring all errors
     f_mount(0, "", 0);
@@ -325,8 +358,10 @@ void _flush()
 
 	FRESULT result = f_sync(&_file);
 
+	NRF_LOG_INFO("1234flushed");
+
 	if(result != FR_OK)
-		NRF_LOG_DEBUG("f_sync error: %d", result);
+		NRF_LOG_INFO("f_sync error: %d", result);
 }
 
 bool _try_get_last_log_index(uint16_t* index)
@@ -347,7 +382,7 @@ bool _try_get_last_log_index(uint16_t* index)
 
         if (result != FR_OK)
         {
-            NRF_LOG_DEBUG("directory read failed.");
+            NRF_LOG_INFO("directory read failed.");
             break; // still need to close dir
         }
 
@@ -404,11 +439,11 @@ static void _synced_debounce_handler(void* p_event_data, uint16_t event_size)
 
 	if(_is_card_present) // sd card inserted
 	{
-		NRF_LOG_DEBUG("insert detected");
+		NRF_LOG_INFO("insert detected");
 	}
 	else
 	{
-		NRF_LOG_DEBUG("remove detected");
+		NRF_LOG_INFO("remove detected");
 
 		if(_is_module_initialized)
 			_deinit_module();

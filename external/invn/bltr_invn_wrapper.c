@@ -165,7 +165,7 @@ uint32_t bltr_invn_stop()
 		inv_device_stop_sensor(_device, INV_SENSOR_TYPE_ACCELEROMETER);
 	}
 
-	return BLTR_IMU_ERROR_CRITICAL;
+	return BLTR_SUCCESS;
 }
 
 void bltr_invn_poll()
