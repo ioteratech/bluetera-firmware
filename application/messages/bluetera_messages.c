@@ -234,6 +234,18 @@ ret_code_t bltr_msg_imu_sensor_data_to_downlink_message(const bltr_imu_sensor_da
 			message->payload.quaternion.z = data->quaternion[3];
 			message->payload.quaternion.has_z = true;
 			break;
+		
+		case BLTR_IMU_SENSOR_TYPE_RAW:
+			message->which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG; // TODO add support for raw data in .proto file!
+			message->payload.acceleration.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message->payload.acceleration.has_timestamp = true;
+			message->payload.acceleration.x = data->raw.acceleration[0];
+			message->payload.acceleration.has_x = true;
+			message->payload.acceleration.y = data->raw.acceleration[1];
+			message->payload.acceleration.has_y = true;
+			message->payload.acceleration.z = data->raw.acceleration[2];
+			message->payload.acceleration.has_z = true;
+			break;
 
 		default:
 			err = BLTR_MSG_ERROR_UNSUPPORTED;

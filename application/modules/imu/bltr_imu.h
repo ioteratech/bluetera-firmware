@@ -54,7 +54,7 @@ typedef struct
 	};
 } bltr_imu_sensor_data_t;
 
-// TODO(tomer) TEMPORARY! REMOVE!
+// TODO TEMPORARY! REMOVE!
 typedef enum
 {
 	BLTR_IMU_DATA_TYPE_QUATERNION = 0x01,

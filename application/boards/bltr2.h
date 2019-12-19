@@ -22,30 +22,35 @@
 	SOFTWARE.
 */
 
-#ifndef BLTR_INVN_WRAPPER_H_
-#define BLTR_INVN_WRAPPER_H_
+#ifndef BLTR2_H
+#define BLTR2_H
 
-#include "bltr_imu.h"
+// ICM hardware config
+#define ICM_SPI_INSTANCE			0
+#define ICM_SPI_SCK_PIN 			27
+#define ICM_SPI_MOSI_PIN			6
+#define ICM_SPI_MISO_PIN			8
+#define ICM_SPI_CS_PIN				26
+#define ICM_INT1_PIN				41
+#define ICM_INT2_PIN				11
 
-typedef struct
-{
-	bltr_imu_data_handler_t imu_data_handler;
-	bltr_imu_data_handler_t imu_irq_data_handler;
-	int(*read_reg)(void* spi, uint8_t reg, uint8_t* data, uint32_t len);
-	int (*write_reg)(void* spi, uint8_t reg, const uint8_t* data, uint32_t len);
-	void(*delay_ms)(int ms);
-	void(*delay_us)(int us);
-	uint64_t(*get_timestamp_us)(void);
-	void(*enter_critical_section)(void); 
-	void(*leave_critical_section)(void);	
-	void* spi;
-} bltr_invn_init_t;
+// LIS2MDL hardware config
+#define MAG_I2C_INSTACE				1
+#define MAG_I2C_SCL					42
+#define MAG_I2C_SDA					46
+#define MAG_I2C_ADDR				0x1E
 
-uint32_t bltr_invn_init(const bltr_invn_init_t* init);
-uint32_t bltr_invn_start(const bltr_imu_config_t* config);
-uint32_t bltr_invn_stop();
+// GPIO config
+#define LED_RED_PIN					21
+#define LED_GREEN_PIN				15
+#define LED_BLUE_PIN				22
+#define DEBUG_GPIO_TIMING			3
 
-void bltr_invn_poll();
-void bltr_invn_irq_handler();
+// SD card SPI
+#define SDC_SPI_SCK_PIN     		18
+#define SDC_SPI_MOSI_PIN    		13
+#define SDC_SPI_MISO_PIN    		12
+#define SDC_SPI_CS_PIN      		16
+#define SDC_CD_PIN      			14
 
-#endif // BLTR_INVN_WRAPPER_H_
+#endif

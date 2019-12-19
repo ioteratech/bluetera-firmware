@@ -3488,7 +3488,7 @@
 // <e> NRFX_SPI_ENABLED - nrfx_spi - SPI peripheral driver
 //==========================================================
 #ifndef NRFX_SPI_ENABLED
-#define NRFX_SPI_ENABLED 1
+#define NRFX_SPI_ENABLED 0
 #endif
 // <q> NRFX_SPI0_ENABLED  - Enable SPI0 instance
  
@@ -3501,7 +3501,7 @@
  
 
 #ifndef NRFX_SPI1_ENABLED
-#define NRFX_SPI1_ENABLED 1
+#define NRFX_SPI1_ENABLED 0
 #endif
 
 // <q> NRFX_SPI2_ENABLED  - Enable SPI2 instance
@@ -3847,7 +3847,7 @@
 // <e> NRFX_TWIM_ENABLED - nrfx_twim - TWIM peripheral driver
 //==========================================================
 #ifndef NRFX_TWIM_ENABLED
-#define NRFX_TWIM_ENABLED 0
+#define NRFX_TWIM_ENABLED 1
 #endif
 // <q> NRFX_TWIM0_ENABLED  - Enable TWIM0 instance
  
@@ -3860,7 +3860,7 @@
  
 
 #ifndef NRFX_TWIM1_ENABLED
-#define NRFX_TWIM1_ENABLED 0
+#define NRFX_TWIM1_ENABLED 1
 #endif
 
 // <o> NRFX_TWIM_DEFAULT_CONFIG_FREQUENCY  - Frequency
@@ -3909,7 +3909,7 @@
 // <4=> Debug 
 
 #ifndef NRFX_TWIM_CONFIG_LOG_LEVEL
-#define NRFX_TWIM_CONFIG_LOG_LEVEL 3
+#define NRFX_TWIM_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> NRFX_TWIM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -4324,7 +4324,7 @@
 // <e> NRFX_UART_ENABLED - nrfx_uart - UART peripheral driver
 //==========================================================
 #ifndef NRFX_UART_ENABLED
-#define NRFX_UART_ENABLED 1
+#define NRFX_UART_ENABLED 0
 #endif
 // <o> NRFX_UART0_ENABLED - Enable UART0 instance 
 #ifndef NRFX_UART0_ENABLED
@@ -5362,187 +5362,10 @@
 #define TIMER4_ENABLED 0
 #endif
 
-// </e>
-
-// <e> TWIS_ENABLED - nrf_drv_twis - TWIS peripheral driver - legacy layer
-//==========================================================
-#ifndef TWIS_ENABLED
-#define TWIS_ENABLED 0
-#endif
-// <q> TWIS0_ENABLED  - Enable TWIS0 instance
- 
-
-#ifndef TWIS0_ENABLED
-#define TWIS0_ENABLED 0
-#endif
-
-// <q> TWIS1_ENABLED  - Enable TWIS1 instance
- 
-
-#ifndef TWIS1_ENABLED
-#define TWIS1_ENABLED 0
-#endif
-
-// <q> TWIS_ASSUME_INIT_AFTER_RESET_ONLY  - Assume that any instance would be initialized only once
- 
-
-// <i> Optimization flag. Registers used by TWIS are shared by other peripherals. Normally, during initialization driver tries to clear all registers to known state before doing the initialization itself. This gives initialization safe procedure, no matter when it would be called. If you activate TWIS only once and do never uninitialize it - set this flag to 1 what gives more optimal code.
-
-#ifndef TWIS_ASSUME_INIT_AFTER_RESET_ONLY
-#define TWIS_ASSUME_INIT_AFTER_RESET_ONLY 0
-#endif
-
-// <q> TWIS_NO_SYNC_MODE  - Remove support for synchronous mode
- 
-
-// <i> Synchronous mode would be used in specific situations. And it uses some additional code and data memory to safely process state machine by polling it in status functions. If this functionality is not required it may be disabled to free some resources.
-
-#ifndef TWIS_NO_SYNC_MODE
-#define TWIS_NO_SYNC_MODE 0
-#endif
-
-// <o> TWIS_DEFAULT_CONFIG_ADDR0 - Address0 
-#ifndef TWIS_DEFAULT_CONFIG_ADDR0
-#define TWIS_DEFAULT_CONFIG_ADDR0 0
-#endif
-
-// <o> TWIS_DEFAULT_CONFIG_ADDR1 - Address1 
-#ifndef TWIS_DEFAULT_CONFIG_ADDR1
-#define TWIS_DEFAULT_CONFIG_ADDR1 0
-#endif
-
-// <o> TWIS_DEFAULT_CONFIG_SCL_PULL  - SCL pin pull configuration
- 
-// <0=> Disabled 
-// <1=> Pull down 
-// <3=> Pull up 
-
-#ifndef TWIS_DEFAULT_CONFIG_SCL_PULL
-#define TWIS_DEFAULT_CONFIG_SCL_PULL 0
-#endif
-
-// <o> TWIS_DEFAULT_CONFIG_SDA_PULL  - SDA pin pull configuration
- 
-// <0=> Disabled 
-// <1=> Pull down 
-// <3=> Pull up 
-
-#ifndef TWIS_DEFAULT_CONFIG_SDA_PULL
-#define TWIS_DEFAULT_CONFIG_SDA_PULL 0
-#endif
-
-// <o> TWIS_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
- 
-
-// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
-// <0=> 0 (highest) 
-// <1=> 1 
-// <2=> 2 
-// <3=> 3 
-// <4=> 4 
-// <5=> 5 
-// <6=> 6 
-// <7=> 7 
-
-#ifndef TWIS_DEFAULT_CONFIG_IRQ_PRIORITY
-#define TWIS_DEFAULT_CONFIG_IRQ_PRIORITY 7
-#endif
-
-// </e>
-
-// <e> TWI_ENABLED - nrf_drv_twi - TWI/TWIM peripheral driver - legacy layer
-//==========================================================
-#ifndef TWI_ENABLED
-#define TWI_ENABLED 0
-#endif
-// <o> TWI_DEFAULT_CONFIG_FREQUENCY  - Frequency
- 
-// <26738688=> 100k 
-// <67108864=> 250k 
-// <104857600=> 400k 
-
-#ifndef TWI_DEFAULT_CONFIG_FREQUENCY
-#define TWI_DEFAULT_CONFIG_FREQUENCY 26738688
-#endif
-
-// <q> TWI_DEFAULT_CONFIG_CLR_BUS_INIT  - Enables bus clearing procedure during init
- 
-
-#ifndef TWI_DEFAULT_CONFIG_CLR_BUS_INIT
-#define TWI_DEFAULT_CONFIG_CLR_BUS_INIT 0
-#endif
-
-// <q> TWI_DEFAULT_CONFIG_HOLD_BUS_UNINIT  - Enables bus holding after uninit
- 
-
-#ifndef TWI_DEFAULT_CONFIG_HOLD_BUS_UNINIT
-#define TWI_DEFAULT_CONFIG_HOLD_BUS_UNINIT 0
-#endif
-
-// <o> TWI_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
- 
-
-// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
-// <0=> 0 (highest) 
-// <1=> 1 
-// <2=> 2 
-// <3=> 3 
-// <4=> 4 
-// <5=> 5 
-// <6=> 6 
-// <7=> 7 
-
-#ifndef TWI_DEFAULT_CONFIG_IRQ_PRIORITY
-#define TWI_DEFAULT_CONFIG_IRQ_PRIORITY 7
-#endif
-
-// <e> TWI0_ENABLED - Enable TWI0 instance
-//==========================================================
-#ifndef TWI0_ENABLED
-#define TWI0_ENABLED 0
-#endif
-// <q> TWI0_USE_EASY_DMA  - Use EasyDMA (if present)
- 
-
-#ifndef TWI0_USE_EASY_DMA
-#define TWI0_USE_EASY_DMA 0
-#endif
-
-// </e>
-
-// <e> TWI1_ENABLED - Enable TWI1 instance
-//==========================================================
-#ifndef TWI1_ENABLED
-#define TWI1_ENABLED 0
-#endif
-// <q> TWI1_USE_EASY_DMA  - Use EasyDMA (if present)
- 
-
-#ifndef TWI1_USE_EASY_DMA
-#define TWI1_USE_EASY_DMA 0
-#endif
-
-// </e>
-
-// <q> TWIM_NRF52_ANOMALY_109_WORKAROUND_ENABLED  - Enables nRF52 anomaly 109 workaround for TWIM.
- 
-
-// <i> The workaround uses interrupts to wake up the CPU by catching
-// <i> the start event of zero-frequency transmission, clear the 
-// <i> peripheral, set desired frequency, start the peripheral, and
-// <i> the proper transmission. See more in the Errata document or
-// <i> Anomaly 109 Addendum located at https://infocenter.nordicsemi.com/
-
-#ifndef TWIM_NRF52_ANOMALY_109_WORKAROUND_ENABLED
-#define TWIM_NRF52_ANOMALY_109_WORKAROUND_ENABLED 0
-#endif
-
-// </e>
-
 // <e> UART_ENABLED - nrf_drv_uart - UART/UARTE peripheral driver - legacy layer
 //==========================================================
 #ifndef UART_ENABLED
-#define UART_ENABLED 1
+#define UART_ENABLED 0
 #endif
 // <o> UART_DEFAULT_CONFIG_HWFC  - Hardware Flow Control
  
@@ -5619,7 +5442,7 @@
 // <e> UART0_ENABLED - Enable UART0 instance
 //==========================================================
 #ifndef UART0_ENABLED
-#define UART0_ENABLED 1
+#define UART0_ENABLED 0
 #endif
 // <q> UART0_CONFIG_USE_EASY_DMA  - Default setting for using EasyDMA
  
@@ -5770,7 +5593,7 @@
 // <e> APP_SDCARD_ENABLED - app_sdcard - SD/MMC card support using SPI
 //==========================================================
 #ifndef APP_SDCARD_ENABLED
-#define APP_SDCARD_ENABLED 1
+#define APP_SDCARD_ENABLED 0
 #endif
 // <o> APP_SDCARD_SPI_INSTANCE  - SPI instance used
  
@@ -7233,7 +7056,7 @@
 // <i> Log data is buffered and can be processed in idle.
 
 #ifndef NRF_LOG_DEFERRED
-#define NRF_LOG_DEFERRED 1
+#define NRF_LOG_DEFERRED 0
 #endif
 
 // <o> NRF_LOG_BUFSIZE  - Size of the buffer for storing logs (in bytes).
@@ -8216,108 +8039,6 @@
 
 #ifndef TIMER_CONFIG_DEBUG_COLOR
 #define TIMER_CONFIG_DEBUG_COLOR 0
-#endif
-
-// </e>
-
-// <e> TWIS_CONFIG_LOG_ENABLED - Enables logging in the module.
-//==========================================================
-#ifndef TWIS_CONFIG_LOG_ENABLED
-#define TWIS_CONFIG_LOG_ENABLED 0
-#endif
-// <o> TWIS_CONFIG_LOG_LEVEL  - Default Severity level
- 
-// <0=> Off 
-// <1=> Error 
-// <2=> Warning 
-// <3=> Info 
-// <4=> Debug 
-
-#ifndef TWIS_CONFIG_LOG_LEVEL
-#define TWIS_CONFIG_LOG_LEVEL 3
-#endif
-
-// <o> TWIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
- 
-// <0=> Default 
-// <1=> Black 
-// <2=> Red 
-// <3=> Green 
-// <4=> Yellow 
-// <5=> Blue 
-// <6=> Magenta 
-// <7=> Cyan 
-// <8=> White 
-
-#ifndef TWIS_CONFIG_INFO_COLOR
-#define TWIS_CONFIG_INFO_COLOR 0
-#endif
-
-// <o> TWIS_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
- 
-// <0=> Default 
-// <1=> Black 
-// <2=> Red 
-// <3=> Green 
-// <4=> Yellow 
-// <5=> Blue 
-// <6=> Magenta 
-// <7=> Cyan 
-// <8=> White 
-
-#ifndef TWIS_CONFIG_DEBUG_COLOR
-#define TWIS_CONFIG_DEBUG_COLOR 0
-#endif
-
-// </e>
-
-// <e> TWI_CONFIG_LOG_ENABLED - Enables logging in the module.
-//==========================================================
-#ifndef TWI_CONFIG_LOG_ENABLED
-#define TWI_CONFIG_LOG_ENABLED 0
-#endif
-// <o> TWI_CONFIG_LOG_LEVEL  - Default Severity level
- 
-// <0=> Off 
-// <1=> Error 
-// <2=> Warning 
-// <3=> Info 
-// <4=> Debug 
-
-#ifndef TWI_CONFIG_LOG_LEVEL
-#define TWI_CONFIG_LOG_LEVEL 3
-#endif
-
-// <o> TWI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
- 
-// <0=> Default 
-// <1=> Black 
-// <2=> Red 
-// <3=> Green 
-// <4=> Yellow 
-// <5=> Blue 
-// <6=> Magenta 
-// <7=> Cyan 
-// <8=> White 
-
-#ifndef TWI_CONFIG_INFO_COLOR
-#define TWI_CONFIG_INFO_COLOR 0
-#endif
-
-// <o> TWI_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
- 
-// <0=> Default 
-// <1=> Black 
-// <2=> Red 
-// <3=> Green 
-// <4=> Yellow 
-// <5=> Blue 
-// <6=> Magenta 
-// <7=> Cyan 
-// <8=> White 
-
-#ifndef TWI_CONFIG_DEBUG_COLOR
-#define TWI_CONFIG_DEBUG_COLOR 0
 #endif
 
 // </e>

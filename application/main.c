@@ -67,6 +67,8 @@
 
 #include <nrf_bootloader_info.h>
 
+#include <nrfx_twim.h>
+
 #include "bluetera_boards.h"
 #include "imu_manager.h"
 #include "sd_card_manager.h"
@@ -134,7 +136,7 @@
 
 #define DEAD_BEEF                           0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-#define LED_TIMER_INTERVAL_ADV		        APP_TIMER_TICKS(2000)
+#define LED_TIMER_INTERVAL_ADV		        APP_TIMER_TICKS(1000)
 #define LED_TIMER_INTERVAL_CONNECTED        APP_TIMER_TICKS(500)
 
 NRF_BLE_GATT_DEF(_gatt);                                           /**< GATT module instance. */
@@ -167,6 +169,8 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg);
 
 static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event);
 
+static nrfx_twim_t _twi = NRFX_TWIM_INSTANCE(MAG_I2C_INSTACE);
+
 int main()
 {
 	// note: initialization order is important - rearrange with care!
@@ -176,10 +180,10 @@ int main()
 	APP_ERROR_CHECK(err_code);
 	NRF_LOG_DEFAULT_BACKENDS_INIT();
 
+	NRF_LOG_INFO("startup");
+
 	err_code = ble_dfu_buttonless_async_svci_init();
     APP_ERROR_CHECK(err_code);
-
-	NRF_LOG_INFO("startup");
 
 	timers_init();
 
@@ -198,19 +202,23 @@ int main()
 	conn_params_init();
 	peer_manager_init();	
 
-	// Can be used to debug realtime stuff with an oscilloscope by changing the GPIO state from points of interest.
-	// nrfx_gpiote_out_config_t debug_pin = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(false);
-	// nrfx_gpiote_out_init(DEBUG_GPIO_TIMING, &debug_pin);
-
 	// application scheduler (synchronizes IRQ events to main thread)
 	APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 
 	// Bluetera general initialization
 	bltr_utils_init();
 	
-	// Leds
+	
 	APP_ERROR_CHECK(nrfx_gpiote_init());
+
+	// Can be used to debug realtime stuff with an oscilloscope by changing the GPIO state from points of interest.
+	nrfx_gpiote_out_config_t debug_pin = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(false);
+	nrfx_gpiote_out_init(DEBUG_GPIO_TIMING, &debug_pin);
+
+	// Leds
 	nrfx_gpiote_out_config_t led_cfg = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(true);
+	nrfx_gpiote_out_init(LED_RED_PIN, &led_cfg);
+	nrfx_gpiote_out_init(LED_GREEN_PIN, &led_cfg);
 	nrfx_gpiote_out_init(LED_BLUE_PIN, &led_cfg);
 	err_code = app_timer_start(_led_timer_id, LED_TIMER_INTERVAL_ADV, NULL);
     APP_ERROR_CHECK(err_code);
@@ -220,10 +228,34 @@ int main()
 	bltr_imu_init_t imu_init = { 0 };
 	imu_init.imu_data_handler = imu_data_handler;
 	bltr_imu_init(&imu_init);
+
+	// nrfx_twim_config_t twim_config =
+	// {
+	// 	.scl = MAG_I2C_SCL,
+    // 	.sda = MAG_I2C_SDA,
+	// 	.frequency = NRF_TWIM_FREQ_100K,
+	// 	.interrupt_priority = 7,
+	// 	.hold_bus_uninit = 0
+	// };
+
+	// APP_ERROR_CHECK(nrfx_twim_init(&_twi, &twim_config, NULL, NULL));
+	// nrfx_twim_enable(&_twi);
+
+	// NRF_LOG_INFO("reading MAG whoami...");
+
+	// uint8_t buf_tx[1] = { 0x4F };
+	// uint8_t rx = 0;
+	
+	// NRF_LOG_INFO("tx");
+	// APP_ERROR_CHECK(nrfx_twim_tx(&_twi, MAG_I2C_ADDR, buf_tx, 1, true));
+	// NRF_LOG_INFO("rx");
+	// APP_ERROR_CHECK(nrfx_twim_rx(&_twi, MAG_I2C_ADDR, &rx, 1));
+	// NRF_LOG_INFO("?");
+	// NRF_LOG_INFO("MAG whoami: %d", rx);
 	
 	// SD card manager
 #if BLTR_SD_CARD_ENABLED
-	bltr_sd_card_init_t sd_card_init = { 0 };	// currenlty - no card insert/remove handlers
+	bltr_sd_card_init_t sd_card_init = { 0 };	// currently no card insert/remove handlers
 	bltr_sd_card_init(&sd_card_init);
 #endif
 
@@ -232,7 +264,7 @@ int main()
 
 	while(true)
 	{
-		bltr_imu_poll();		
+		bltr_imu_poll();
 		app_sched_execute();
 
 		// if there are no pending log operations, then sleep until next the next event occurs
@@ -351,11 +383,59 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
 	}
 }
 
+
+
 static void led_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
-    
-	nrfx_gpiote_out_toggle(LED_BLUE_PIN);
+
+	static int state = 0;
+
+	switch(state)
+	{
+		case 0:
+			nrfx_gpiote_out_clear(LED_RED_PIN);
+			nrfx_gpiote_out_set(LED_GREEN_PIN);
+			nrfx_gpiote_out_set(LED_BLUE_PIN);
+			break;
+		case 1:
+			nrfx_gpiote_out_set(LED_RED_PIN);
+			nrfx_gpiote_out_clear(LED_GREEN_PIN);
+			nrfx_gpiote_out_set(LED_BLUE_PIN);
+			break;
+		case 2:
+			nrfx_gpiote_out_set(LED_RED_PIN);
+			nrfx_gpiote_out_set(LED_GREEN_PIN);
+			nrfx_gpiote_out_clear(LED_BLUE_PIN);
+			break;
+		case 3:
+			nrfx_gpiote_out_set(LED_RED_PIN);
+			nrfx_gpiote_out_set(LED_GREEN_PIN);
+			nrfx_gpiote_out_set(LED_BLUE_PIN);
+			break;
+		case 4:
+			nrfx_gpiote_out_clear(LED_RED_PIN);
+			nrfx_gpiote_out_clear(LED_GREEN_PIN);
+			nrfx_gpiote_out_clear(LED_BLUE_PIN);
+			break;
+		case 5:
+			nrfx_gpiote_out_set(LED_RED_PIN);
+			nrfx_gpiote_out_set(LED_GREEN_PIN);
+			nrfx_gpiote_out_set(LED_BLUE_PIN);
+			break;
+		case 6:
+			nrfx_gpiote_out_clear(LED_RED_PIN);
+			nrfx_gpiote_out_clear(LED_GREEN_PIN);
+			nrfx_gpiote_out_clear(LED_BLUE_PIN);
+			break;
+		case 7:
+			nrfx_gpiote_out_set(LED_RED_PIN);
+			nrfx_gpiote_out_set(LED_GREEN_PIN);
+			nrfx_gpiote_out_set(LED_BLUE_PIN);
+			break;
+	}
+
+	state = (state + 1) % 8;
 }
 
 static void timers_init()
@@ -503,6 +583,10 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 			_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 			err_code = nrf_ble_qwr_conn_handle_assign(&_qwr, _conn_handle);
 			APP_ERROR_CHECK(err_code);
+
+			sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_CONN, _conn_handle, 8);
+			
+			
 			app_timer_stop(_led_timer_id);
 			app_timer_start(_led_timer_id, LED_TIMER_INTERVAL_CONNECTED, NULL);
 			break;
@@ -631,6 +715,9 @@ static void advertising_init()
 	APP_ERROR_CHECK(err_code);
 
 	ble_advertising_conn_cfg_tag_set(&_advertising, APP_BLE_CONN_CFG_TAG);
+
+
+	sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, _advertising.adv_handle, 8);
 }
 
 // synced with main thread
@@ -644,7 +731,7 @@ static void imu_data_handler(const bltr_imu_sensor_data_t* data)
 			break;
 
 		case BLUETERA_DATA_SINK_TYPE_DATA_SINK_TYPE_SDCARD:
-			bltr_sd_card_handle_imu_sensor_data(data);
+			//bltr_sd_card_handle_imu_sensor_data(data);
 			break;
 
 		default:

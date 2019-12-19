@@ -2,7 +2,6 @@
 PROJECT_NAME     		:= bluetera
 TARGETS          		:= bluetera
 OUTPUT_DIRECTORY 		:= _build
-INVN_LIB_NAME 			:= imu_driver
 
 # Be careful when changing the DFU_APP_VERSION variable!
 # If you upload a file with a version > 1 the bootloader will not let you
@@ -22,17 +21,8 @@ APP_DIR := $(PROJ_DIR)/application
 EXTERNAL_DIR := $(PROJ_DIR)/external
 
 # Hardware
-BLUETERA_BOARD := BLUETERA_BOARD_V1
-NRF_CHIP := NRF52832
-
-# Invensense ICM20649 library
-SRC_INVENSENSE = $(wildcard $(EXTERNAL_DIR)/invn/*.c) \
-  $(wildcard $(EXTERNAL_DIR)/invn/Devices/*.c) \
-  $(wildcard $(EXTERNAL_DIR)/invn/Devices/Drivers/Icm20649/*.c) \
-  $(wildcard $(EXTERNAL_DIR)/invn/EmbUtils/*.c)
-  
-INC_INVENSENSE = $(EXTERNAL_DIR) \
-  $(EXTERNAL_DIR)/invn 
+BLUETERA_BOARD := BLUETERA_BOARD_V2
+NRF_CHIP := NRF52840
   
 # print variable
 # $(info $$SRC_INVENSENSE is [${SRC_INVENSENSE}])
@@ -107,12 +97,11 @@ SRC_FILES += \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
-  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_spi.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power_clock.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_spi.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_spim.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
@@ -123,6 +112,7 @@ SRC_FILES += \
   $(APP_DIR)/modules/sd_card/sd_card_manager.c \
   $(APP_DIR)/services/bus/ble_bus.c \
   $(APP_DIR)/utilities/utils.c \
+  $(APP_DIR)/utilities/MadgwickAHRS.c \
 
 
 # Include folders common to all targets
@@ -192,7 +182,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/external/protothreads/pt-1.4 \
   $(SDK_ROOT)/external/segger_rtt \
   $(SDK_ROOT)/integration/nrfx \
-  $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/modules/nrfx \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(SDK_ROOT)/modules/nrfx/hal \
@@ -204,16 +193,11 @@ INC_FOLDERS += \
   $(APP_DIR)/modules/imu \
   $(APP_DIR)/modules/sd_card \
   $(APP_DIR)/services/bus \
-  $(APP_DIR)/utilities \
-  $(EXTERNAL_DIR)/invn
-  
-
-# Libraries common to all targets
-LIB_FILES += $(EXTERNAL_DIR)/invn/$(INVN_LIB_NAME).a \
+  $(APP_DIR)/utilities
 
 # Optimization flags
-OPT = -O3 -g3
-#OPT = -O0 -g
+#OPT = -O3 -g3
+OPT = -O0 -g
 # Uncomment the line below to enable link time optimization
 #OPT += -flto
 
@@ -236,7 +220,7 @@ CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
-#CFLAGS += -DDEBUG
+CFLAGS += -DDEBUG
 #CFLAGS += -Wall -Werror
 CFLAGS += -Wall
 
@@ -334,14 +318,7 @@ LIB_FILES += -lc -lnosys -lm
 
 
 .PHONY: default help
-
-# Default target
-# We only build invensense library if the library's sources are present
-ifneq ("$(wildcard $(EXTERNAL_DIR)/invn/IDDVersion.h)","")
-default: build_invn_lib bluetera generate_dfu_settings
-else
 default: bluetera generate_dfu_settings
-endif
 
 # Print all targets that can be built
 help:
@@ -349,7 +326,6 @@ help:
 	@echo		bluetera (default)
 	@echo		flash_softdevice - flash soft device
 	@echo		flash - flashing binary
-	@echo		build_invn_lib - build invensense library
 	@echo 		gen_commit_hash - re-generate commit hash file
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
@@ -380,21 +356,10 @@ flash_softdevice:
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(SOFTDEVICE_HEX) --sectorerase
 	nrfjprog -f nrf52 --reset
 
-INVN_LIB_OBJ_LOC = $(addprefix $(OUTPUT_DIRECTORY)/imu_driver/, $(addsuffix .o, $(basename $(notdir $(SRC_INVENSENSE)))))
-
 # Create a DFU package
 generate_package: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Generating DFU package
 	nrfutil pkg generate --hw-version 52 --application-version $(DFU_APP_VERSION) --application $< --sd-req $(DFU_SD_REQ) --key-file bootloader\key\private_key.pem bluetera_dfu_package_$(SCM_COMMIT_HASH).zip
-
-# Build Invensense library. Requires GNU tools
-build_invn_lib:
-	-$(MK) "$(OUTPUT_DIRECTORY)"
-	-$(MK) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
-	$(CC) -c $(SRC_INVENSENSE) -I$(EXTERNAL_DIR) -I$(APP_DIR)/modules/imu -I$(APP_DIR)/utilities $(CFLAGS)
-	$(MV) *.o "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME)"
-	"$(GNU_INSTALL_ROOT)$(GNU_PREFIX)-ar" rcs "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a" $(INVN_LIB_OBJ_LOC)
-	$(MV) "$(OUTPUT_DIRECTORY)/$(INVN_LIB_NAME).a" "$(EXTERNAL_DIR)/invn"
 
 erase:
 	nrfjprog -f nrf52 --eraseall

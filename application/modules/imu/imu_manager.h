@@ -32,7 +32,7 @@
 #include "bluetera_err.h"
 #include "app_error.h"
 
-void bltr_imu_init(const bltr_imu_init_t* init);
+ret_code_t bltr_imu_init(const bltr_imu_init_t* init);
 ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* message);
 
 ret_code_t bltr_imu_start(const bltr_imu_config_t* config);

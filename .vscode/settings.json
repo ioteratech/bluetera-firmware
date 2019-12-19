@@ -24,7 +24,6 @@
 		"ble_bas.h": "c",
 		"nrf_log.h": "c",
 		"nrf_log_ctrl.h": "c",
-		"bltr_invn_wrapper.h": "c",
 		"sensortypes.h": "c",
 		"bltr_imu.h": "c",
 		"bluetera_constants.h": "c",
@@ -39,7 +38,15 @@
 		"nordic_common.h": "c",
 		"bluetera_boards.h": "c",
 		"bluetera_config.h": "c",
-		"imu_manager.h": "c"
+		"imu_manager.h": "c",
+		"nrfx_twim.h": "c",
+		"nrf_twim.h": "c",
+		"nrfx.h": "c",
+		"nrfx_glue.h": "c",
+		"nrfx_common.h": "c",
+		"nrfx_config.h": "c",
+		"app_util_platform.h": "c",
+		"utils.h": "c"
 	},
 	"files.exclude": {
 		"**/.git": true,

@@ -27,6 +27,8 @@
 
 #if defined(BLUETERA_BOARD_V1)
 	#include "bltr1.h"
+#elif defined(BLUETERA_BOARD_V2)
+	#include "bltr2.h"
 #else
 	#error "Bluetera Board is not defined"
 #endif
