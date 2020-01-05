@@ -36,9 +36,13 @@
 
 // LIS2MDL hardware config
 #define MAG_I2C_INSTACE				1
-#define MAG_I2C_SCL					42
-#define MAG_I2C_SDA					46
+#define MAG_I2C_SCL_PIN				42
+#define MAG_I2C_SDA_PIN				46
 #define MAG_I2C_ADDR				0x1E
+
+// Battery measuremnt
+#define BATT_MEASURE_EN_PIN	 		45
+#define BATT_MEASURE_CHANNEL		NRF_SAADC_INPUT_AIN0
 
 // GPIO config
 #define LED_RED_PIN					21

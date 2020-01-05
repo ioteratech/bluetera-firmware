@@ -105,6 +105,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_saadc.c \
   $(APP_DIR)/main.c \
   $(APP_DIR)/messages/bluetera_messages.c \
   $(APP_DIR)/messages/bluetera_messages.pb.c \

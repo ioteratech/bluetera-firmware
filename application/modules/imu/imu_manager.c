@@ -253,6 +253,10 @@ ret_code_t bltr_imu_init(const bltr_imu_init_t* init)
 
 	_data_ready = false;
 	_calibrating = true;
+
+	// TODO: move this out of here!
+	nrfx_gpiote_out_clear(LED_RED_PIN);
+
 	_calibration_samples = 0;
 	_gyro_bias[0] = 0.0f;
 	_gyro_bias[1] = 0.0f;
@@ -346,6 +350,9 @@ void bltr_imu_poll()
 				_gyro_bias[1] /= _calibration_samples;
 				_gyro_bias[2] /= _calibration_samples;
 				_calibrating = false;
+
+				// TODO: move this out of here!
+				nrfx_gpiote_out_set(LED_RED_PIN);
 
 				NRF_LOG_INFO("gyro cal: " NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(_gyro_bias[0]));
 				NRF_LOG_INFO(NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(_gyro_bias[1]));

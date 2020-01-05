@@ -68,6 +68,7 @@
 #include <nrf_bootloader_info.h>
 
 #include <nrfx_twim.h>
+#include <nrfx_saadc.h>
 
 #include "bluetera_boards.h"
 #include "imu_manager.h"
@@ -169,7 +170,21 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg);
 
 static void ble_dfu_evt_handler(ble_dfu_buttonless_evt_type_t event);
 
-static nrfx_twim_t _twi = NRFX_TWIM_INSTANCE(MAG_I2C_INSTACE);
+//static nrfx_twim_t _twi = NRFX_TWIM_INSTANCE(MAG_I2C_INSTACE);
+
+void saadc_evt(nrfx_saadc_evt_t const* p_event)
+{
+	switch(p_event->type)
+	{
+		case NRFX_SAADC_EVT_DONE: // buffer is filled with samples.
+			break;
+		case NRFX_SAADC_EVT_LIMIT: // one of the limits is reached.
+			break;
+		case NRFX_SAADC_EVT_CALIBRATEDONE: // calibration is complete.
+			NRF_LOG_INFO("saadc cal complete");
+			break;
+	}
+}
 
 int main()
 {
@@ -215,6 +230,29 @@ int main()
 	nrfx_gpiote_out_config_t debug_pin = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(false);
 	nrfx_gpiote_out_init(DEBUG_GPIO_TIMING, &debug_pin);
 
+	// nrfx_gpiote_out_config_t batt_measure_en_pin = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(false);
+	// nrfx_gpiote_out_init(BATT_MEASURE_EN_PIN, &batt_measure_en_pin);
+
+	// nrfx_gpiote_out_set(BATT_MEASURE_EN_PIN);
+
+	// nrfx_saadc_config_t saadc_cfg = 
+	// {
+	// 	.resolution = 2, // 12 bit
+	// 	.oversample = 0, // no oversample
+	// 	.interrupt_priority = NRFX_SAADC_CONFIG_IRQ_PRIORITY,
+	// 	.low_power_mode = false
+	// };
+
+	// err_code = nrfx_saadc_init(&saadc_cfg, saadc_evt);
+	// APP_ERROR_CHECK(err_code);
+
+	// nrf_saadc_channel_config_t batt_measure_adc_cfg = NRFX_SAADC_DEFAULT_CHANNEL_CONFIG_SE(BATT_MEASURE_CHANNEL);
+	// err_code = nrfx_saadc_channel_init(BATT_MEASURE_CHANNEL, &batt_measure_adc_cfg);
+	// APP_ERROR_CHECK(err_code);
+
+	// err_code = nrfx_saadc_calibrate_offset();
+	// APP_ERROR_CHECK(err_code);
+
 	// Leds
 	nrfx_gpiote_out_config_t led_cfg = NRFX_GPIOTE_CONFIG_OUT_SIMPLE(true);
 	nrfx_gpiote_out_init(LED_RED_PIN, &led_cfg);
@@ -231,8 +269,8 @@ int main()
 
 	// nrfx_twim_config_t twim_config =
 	// {
-	// 	.scl = MAG_I2C_SCL,
-    // 	.sda = MAG_I2C_SDA,
+	// 	.scl = MAG_I2C_SCL_PIN,
+    // 	.sda = MAG_I2C_SDA_PIN,
 	// 	.frequency = NRF_TWIM_FREQ_100K,
 	// 	.interrupt_priority = 7,
 	// 	.hold_bus_uninit = 0
@@ -266,6 +304,15 @@ int main()
 	{
 		bltr_imu_poll();
 		app_sched_execute();
+
+		// int16_t adc_value = 0;
+		// nrfx_saadc_sample_convert(BATT_MEASURE_CHANNEL, &adc_value);
+
+		// float raw_voltage = adc_value * (3.6f / 4096.0f);
+		// float voltage = raw_voltage / (10e3/22e3);
+		// NRF_LOG_INFO("raw voltage: " NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(raw_voltage));
+		// NRF_LOG_INFO("batt voltage: " NRF_LOG_FLOAT_MARKER, NRF_LOG_FLOAT(voltage));
+		// nrf_delay_ms(500);
 
 		// if there are no pending log operations, then sleep until next the next event occurs
 		if (NRF_LOG_PROCESS() == false)
@@ -389,53 +436,16 @@ static void led_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
 
-	static int state = 0;
-
-	switch(state)
+	if(_conn_handle == BLE_CONN_HANDLE_INVALID) // not connected, advertising
 	{
-		case 0:
-			nrfx_gpiote_out_clear(LED_RED_PIN);
-			nrfx_gpiote_out_set(LED_GREEN_PIN);
-			nrfx_gpiote_out_set(LED_BLUE_PIN);
-			break;
-		case 1:
-			nrfx_gpiote_out_set(LED_RED_PIN);
-			nrfx_gpiote_out_clear(LED_GREEN_PIN);
-			nrfx_gpiote_out_set(LED_BLUE_PIN);
-			break;
-		case 2:
-			nrfx_gpiote_out_set(LED_RED_PIN);
-			nrfx_gpiote_out_set(LED_GREEN_PIN);
-			nrfx_gpiote_out_clear(LED_BLUE_PIN);
-			break;
-		case 3:
-			nrfx_gpiote_out_set(LED_RED_PIN);
-			nrfx_gpiote_out_set(LED_GREEN_PIN);
-			nrfx_gpiote_out_set(LED_BLUE_PIN);
-			break;
-		case 4:
-			nrfx_gpiote_out_clear(LED_RED_PIN);
-			nrfx_gpiote_out_clear(LED_GREEN_PIN);
-			nrfx_gpiote_out_clear(LED_BLUE_PIN);
-			break;
-		case 5:
-			nrfx_gpiote_out_set(LED_RED_PIN);
-			nrfx_gpiote_out_set(LED_GREEN_PIN);
-			nrfx_gpiote_out_set(LED_BLUE_PIN);
-			break;
-		case 6:
-			nrfx_gpiote_out_clear(LED_RED_PIN);
-			nrfx_gpiote_out_clear(LED_GREEN_PIN);
-			nrfx_gpiote_out_clear(LED_BLUE_PIN);
-			break;
-		case 7:
-			nrfx_gpiote_out_set(LED_RED_PIN);
-			nrfx_gpiote_out_set(LED_GREEN_PIN);
-			nrfx_gpiote_out_set(LED_BLUE_PIN);
-			break;
+		nrfx_gpiote_out_set(LED_BLUE_PIN);
+		nrfx_gpiote_out_toggle(LED_GREEN_PIN);
 	}
-
-	state = (state + 1) % 8;
+	else
+	{
+		nrfx_gpiote_out_set(LED_GREEN_PIN);
+		nrfx_gpiote_out_toggle(LED_BLUE_PIN);
+	}
 }
 
 static void timers_init()
