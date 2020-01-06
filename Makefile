@@ -347,14 +347,14 @@ generate_dfu_settings: $(OUTPUT_DIRECTORY)/bluetera.hex
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/bluetera.hex
 	@echo Flashing: $<
-	nrfjprog --program $< --sectorerase
-	nrfjprog --program _build/bootloader_settings.hex --sectoranduicrerase
+	nrfjprog --program $< --sectorerase --verify
+	nrfjprog --program _build/bootloader_settings.hex --sectoranduicrerase --verify
 	nrfjprog -r
 
 # Flash softdevice
 flash_softdevice:
 	@echo Flashing: $(SOFTDEVICE_HEX)
-	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(SOFTDEVICE_HEX) --sectorerase
+	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/$(SOFTDEVICE_HEX) --sectorerase --verify
 	nrfjprog -f nrf52 --reset
 
 # Create a DFU package

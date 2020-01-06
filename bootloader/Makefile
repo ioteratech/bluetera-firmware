@@ -279,7 +279,7 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 # Flash the program
 flash: default
 	@echo Flashing: $(OUTPUT_DIRECTORY)/bootloader.hex
-	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/bootloader.hex --sectorerase
+	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/bootloader.hex --sectorerase --verify
 	nrfjprog -f nrf52 --reset
 
 erase:
