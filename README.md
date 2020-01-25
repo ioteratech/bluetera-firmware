@@ -3,14 +3,13 @@
 # Bluetera Firmware
 Firmware for the BLE-enabled Bluetera module.</br>
 
-<img src=docs/images/bluetera_module_front.png width="20%" height="20%" hspace="20"/> 
-<img src=docs/images/bluetera_module_back.png width="20%" height="20%" hspace="20"/>
+<img src=docs/images/blueterra2-angle-09.png width="60%" hspace="20"/> 
 
 Visit our website: https://ioteratech.com
 ## Getting Started
 
 Bluetera is an open source IoT platform for the development of smart and connected products. The platform includes:
-* Bluetera Hardware module - repository [here]()
+* Bluetera Hardware module - repository [here](https://github.com/ioteratech/bluetera-hardware)
 * Bluetera Firmware (this repository)
 * Blutera SDK(s) - repositories [here](https://github.com/ioteratech/)
 
@@ -27,7 +26,6 @@ This guide provides a detailed description on how to build and debug the Blueter
   
 you might also want to install:
 * Visual Studio Code IDE - download [here](https://code.visualstudio.com)
-* Invensense Embedded Motion Driver<sup id="a2">[2](#f1)</sup> (only if you intend to modify the Bluetera IMU driver) - download [here](https://www.invensense.com)
 
 ### Installing
 You can more-or-less follow the instructions of [this blog](https://devzone.nordicsemi.com/tutorials/b/getting-started/posts/development-with-gcc-and-eclipse), skipping Eclipse-related stuff (that is, unless you want to use Eclipse as your IDE :-)):
@@ -86,14 +84,14 @@ This guide only covers updating the application firmware. If you wish to also up
 ### Programming via J-Link debugger
 #### Prerequisite
 * A Bluetera module (either with or without battery)
-* Nordic Semiconductor's Developement Kits ([nRF52832-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52-DK) / [nRF52840-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52840-DK)). 
+* Nordic Semiconductor's Developement Kits ([nRF52832-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52-DK) / [nRF52840-DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52840-DK))<sup id="a2">[2](#f2)</sup>. 
 * A Windows 10 machine, with the following software: 
   * Segger J-Link software for Nordic - download [here](https://www.segger.com/downloads/jlink#J-LinkSoftwareAndDocumentationPack) 
   * nRF command line tools - download [here](https://www.nordicsemi.com/?sc_itemid=%7B56868165-9553-444D-AA57-15BDE1BF6B49%7D)
 #### Preperation
-  * Solder 4 wires to Bluetera SWD pads - VCC, GND, CLK and SIO, shown on the right side of the following image: 
+  * Connect 4 wires to Bluetera SWD pads - VCC, GND, SWDCLK and SWDIO, shown on the right side of the following image. You can solder wires directly to those pins, or use the expansion board.
   
-  <img style="display: block; margin-left:auto;  margin-right:auto;"  src=docs/images/bluetera_module_front_signals.png width="60%" height="60%"/> 
+  <img style="display: block; margin-left:auto;  margin-right:auto;"  src=docs/images/bt2_pinout.jpeg width="60%"/> 
 
 * Prepare the PCA10040 / PCA10056 board: 
   *  Make sure the main power switch is off
@@ -102,13 +100,9 @@ This guide only covers updating the application firmware. If you wish to also up
 *  Connect the SWD wires to the board:
    *  Bluetera GND to P1.GND pin
    *  Bluetera VCC to P20.VTG pin
-   *  Bluetera CLK to P20.SWD_CLK pin
-   *  Bluetera SIO to P20.SWD_IO pin
+   *  Bluetera SWDCLK to P20.SWD_CLK pin
+   *  Bluetera SWDIO to P20.SWD_IO pin
 * If the Bluetera is without battery, you can also power it from the board, by shorting P20.VTG to P20.VDD_nRF pin.
-
-The Following images illustrate the connection without a battery: 
-     
-![](docs/images/bluetera_PRG_4_w300.jpg)
 
 ### Programming:
   * Connect the Development Board to a PC via USB.
@@ -142,6 +136,5 @@ Iotera logger demo is a Windows open source app that illustrates the usage of th
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Notes
-<sup id="f1">1</sup> Nordic supports other IDEs and toolchains. This repository was only built and tested using GCC. [↩](#a1)
-
-<sup id="f2">2</sup> InvenSense driver is not open-source. You can, however, request the sources from TDK. Bluetera firmware includes the Invensense driver as a pre-compiled library [↩](#a1)
+<sup id="f1">1</sup> Nordic supports other IDEs and toolchains. This repository was only built and tested using GCC. [↩](#a1)</br>
+<sup id="f2">2</sup> In principle, any J-Link compatible emulator should also work here. [↩](#a2)
