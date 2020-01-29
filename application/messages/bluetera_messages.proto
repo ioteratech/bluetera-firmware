@@ -84,10 +84,16 @@ message ImuCommand
 	}
 }
 
+message LedCommand {
+	uint32 ledId = 1;
+	bool isOn = 2;
+}
+
 message UplinkMessage
 {
 	oneof payload {
 		ImuCommand imu = 1;
 		EchoPayload echo = 17;
+		LedCommand led = 18;
 	}
 }

@@ -46,7 +46,9 @@
 		"nrfx_common.h": "c",
 		"nrfx_config.h": "c",
 		"app_util_platform.h": "c",
-		"utils.h": "c"
+		"utils.h": "c",
+		"nrfx_log.h": "c",
+		"nrfx_gpiote.h": "c"
 	},
 	"files.exclude": {
 		"**/.git": true,

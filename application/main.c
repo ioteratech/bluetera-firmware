@@ -588,7 +588,11 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 			
 			
 			app_timer_stop(_led_timer_id);
-			app_timer_start(_led_timer_id, LED_TIMER_INTERVAL_CONNECTED, NULL);
+			// for this demo - turn leds off on connection
+			nrfx_gpiote_out_set(LED_RED_PIN);
+			nrfx_gpiote_out_set(LED_GREEN_PIN);
+			nrfx_gpiote_out_set(LED_BLUE_PIN);
+			// app_timer_start(_led_timer_id, LED_TIMER_INTERVAL_CONNECTED, NULL);
 			break;
 		case BLE_GAP_EVT_DISCONNECTED:
 			NRF_LOG_INFO("disconnected, reason %d.", p_ble_evt->evt.gap_evt.params.disconnected.reason);
@@ -873,7 +877,41 @@ static void bluetera_uplink_message_handler(bluetera_uplink_message_t* msg)
 	ret_code_t err = BLTR_MSG_ERROR_UNSUPPORTED;
 	bluetera_bluetera_modules_type_t module = BLUETERA_BLUETERA_MODULES_TYPE_SYSTEM;
 	switch(msg->which_payload)
-	{
+	{		
+		case BLUETERA_UPLINK_MESSAGE_LED_TAG:
+		{
+			const bluetera_led_command_t* cmd = (const bluetera_led_command_t*)&msg->payload.led;
+			nrfx_gpiote_pin_t led_pin;
+
+			switch(cmd->ledId)
+			{
+				case 1:
+					led_pin = LED_RED_PIN;
+					err = BLTR_SUCCESS;
+					break;
+
+				case 2:
+					led_pin = LED_GREEN_PIN;
+					err = BLTR_SUCCESS;
+					break;
+				
+				case 3:
+					led_pin = LED_BLUE_PIN;
+					err = BLTR_SUCCESS;
+					break;
+
+			}
+
+			if(err == BLTR_SUCCESS)
+			{
+				if(cmd->isOn)
+					nrfx_gpiote_out_clear(led_pin);
+				else
+					nrfx_gpiote_out_set(led_pin);					
+			}
+		}
+			break;
+
 		case BLUETERA_UPLINK_MESSAGE_ECHO_TAG:
 			err = bltr_msg_send_echo(msg->payload.echo.value);
 			break;
