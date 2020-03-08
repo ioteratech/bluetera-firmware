@@ -235,6 +235,18 @@ ret_code_t bltr_msg_imu_sensor_data_to_downlink_message(const bltr_imu_sensor_da
 			message->payload.quaternion.has_z = true;
 			break;
 		
+		case BLTR_IMU_SENSOR_TYPE_GYROSCOPE:
+			message->which_payload = BLUETERA_DOWNLINK_MESSAGE_GYROSCOPE_TAG; // TODO add support for raw data in .proto file!
+			message->payload.gyroscope.timestamp = (uint32_t)(data->timestamp / 1000.0f);
+			message->payload.gyroscope.has_timestamp = true;
+			message->payload.gyroscope.x = data->gyroscope[0];
+			message->payload.gyroscope.has_x = true;
+			message->payload.gyroscope.y = data->gyroscope[1];
+			message->payload.gyroscope.has_y = true;
+			message->payload.gyroscope.z = data->gyroscope[2];
+			message->payload.gyroscope.has_z = true;
+			break;
+
 		case BLTR_IMU_SENSOR_TYPE_RAW:
 			message->which_payload = BLUETERA_DOWNLINK_MESSAGE_ACCELERATION_TAG; // TODO add support for raw data in .proto file!
 			message->payload.acceleration.timestamp = (uint32_t)(data->timestamp / 1000.0f);

@@ -85,6 +85,7 @@ static bool _data_ready;
 static bool _calibrating;
 static uint32_t _calibration_samples;
 static float _gyro_bias[3];
+static bltr_imu_config_t _config;
 
 static void _on_pin_event_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
 //static void _imu_irq_data_handler(const bltr_imu_sensor_data_t* data);
@@ -262,6 +263,8 @@ ret_code_t bltr_imu_init(const bltr_imu_init_t* init)
 	_gyro_bias[1] = 0.0f;
 	_gyro_bias[2] = 0.0f;
 
+	memset(&_config, 0, sizeof(_config));
+
 	return _init();
 }
 
@@ -305,6 +308,8 @@ ret_code_t bltr_imu_handle_uplink_message(const bluetera_uplink_message_t* messa
 
 ret_code_t bltr_imu_start(const bltr_imu_config_t* config)
 {
+	_config = *config;
+
 	return BLTR_SUCCESS;
 }
 
@@ -380,24 +385,42 @@ void bltr_imu_poll()
 				// sensor_data.raw.gyroscope[1] = (buf[8] << 8) | buf[9];
 				// sensor_data.raw.gyroscope[2] = (buf[10] << 8) | buf[11];
 
-				bltr_imu_sensor_data_t sensor_data;
-				sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR;
-				sensor_data.timestamp = timestamp;		
-				sensor_data.quaternion[0] = q0;
-				sensor_data.quaternion[1] = q1;
-				sensor_data.quaternion[2] = q2;
-				sensor_data.quaternion[3] = q3;
-			
-				_imu_data_handler(&sensor_data);
+				if(_config.data_types & BLTR_IMU_DATA_TYPE_QUATERNION)
+				{
+					bltr_imu_sensor_data_t sensor_data;
+					sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ROTATION_VECTOR;
+					sensor_data.timestamp = timestamp;		
+					sensor_data.quaternion[0] = q0;
+					sensor_data.quaternion[1] = q1;
+					sensor_data.quaternion[2] = q2;
+					sensor_data.quaternion[3] = q3;
+				
+					_imu_data_handler(&sensor_data);
+				}
+				
+				if(_config.data_types & BLTR_IMU_DATA_TYPE_ACCELEROMETER)
+				{
+					bltr_imu_sensor_data_t sensor_data;
+					sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_ACCELEROMETER;
+					sensor_data.timestamp = timestamp;		
+					sensor_data.acceleration[0] = ax;
+					sensor_data.acceleration[1] = ay;
+					sensor_data.acceleration[2] = az;
+				
+					_imu_data_handler(&sensor_data);
+				}
 
-				bltr_imu_sensor_data_t sensor_data2;
-				sensor_data2.sensor = BLTR_IMU_SENSOR_TYPE_ACCELEROMETER;
-				sensor_data2.timestamp = timestamp;		
-				sensor_data2.acceleration[0] = ax;
-				sensor_data2.acceleration[1] = ay;
-				sensor_data2.acceleration[2] = az;
-			
-				_imu_data_handler(&sensor_data2);
+				if(_config.data_types & BLTR_IMU_DATA_TYPE_GYROSCOPE)
+				{
+					bltr_imu_sensor_data_t sensor_data;
+					sensor_data.sensor = BLTR_IMU_SENSOR_TYPE_GYROSCOPE;
+					sensor_data.timestamp = timestamp;		
+					sensor_data.gyroscope[0] = gx;
+					sensor_data.gyroscope[1] = gy;
+					sensor_data.gyroscope[2] = gz;
+				
+					_imu_data_handler(&sensor_data);
+				}
 			}
 
 			counter++;

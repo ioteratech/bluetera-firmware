@@ -59,7 +59,7 @@ typedef enum
 {
 	BLTR_IMU_DATA_TYPE_QUATERNION = 0x01,
 	BLTR_IMU_DATA_TYPE_ACCELEROMETER = 0x02,
-	BLTR_IMU_DATA_TYPE_RAW = 0x04
+	BLTR_IMU_DATA_TYPE_GYROSCOPE = 0x04
 } bltr_imu_data_type_t;
 
 typedef struct {

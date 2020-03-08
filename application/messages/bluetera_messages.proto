@@ -44,11 +44,20 @@ message ImuQuaternionPayload
 	float z = 5;
 }
 
+message ImuGyroscopePayload
+{
+	uint32 timestamp = 1;
+	float x = 2;
+	float y = 3;
+	float z = 4;
+}
+
 message DownlinkMessage
 {    
     oneof payload {
 		ImuAccelerationPayload acceleration = 1;
 		ImuQuaternionPayload quaternion = 2;
+		ImuGyroscopePayload gyroscope = 3;
 		Error error = 16;
 		EchoPayload echo = 17;
     }
@@ -62,14 +71,14 @@ enum DataSinkType
 }
 
 enum ImuDataType {
-    UNKNOWN = 0x00;
+    UNKNOWN = 0x00; // TODO: is that really needed?
 	QUATERNION = 0x01;
 	ACCELEROMETER = 0x02;
-	RAW = 0x04;
+	GYROSCOPE = 0x04;
 }
 
 message ImuStart {
-	fixed32 data_types = 1;
+	fixed32 data_types = 1; // will use ImuDataType as bitfield
 	uint32 odr = 2;
 	uint32 acc_fsr = 3;
 	uint32 gyro_fsr = 4;
