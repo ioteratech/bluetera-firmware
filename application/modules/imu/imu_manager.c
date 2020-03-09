@@ -329,7 +329,7 @@ void bltr_imu_poll()
 		uint8_t buf[12];
 		_read_reg(REG_ACCEL_DATA_X1, buf, 12);	
 
-		uint64_t timestamp = bltr_utils_get_timestamp();
+		uint64_t timestamp = bltr_utils_get_timestamp(); // TODO should the timestmap for the current sample be recorded when the interrupt is called?
 
 		float acc_fsr = (16.0f / 32768.0f);
 		float ax = (int16_t)((buf[0] << 8) | buf[1]) * acc_fsr;
